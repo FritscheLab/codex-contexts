@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible problem using sanitized information.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the project.
+
+        **Do not paste credentials, tokens, authentication files, private research data, participant data, or unredacted logs.** Use synthetic values and follow `SECURITY.md` for vulnerabilities.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Provide a release tag or commit hash, not account information.
+      placeholder: main at abc1234
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, shell, Codex CLI version, and direnv version.
+      placeholder: macOS 15; zsh 5.9; Codex 0.x; direnv 2.x
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal sanitized reproduction
+      description: Use synthetic paths, provider names, URLs, models, and credentials.
+      placeholder: Describe the smallest sequence that reproduces the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Redact usernames, home paths, tokens, headers, research data, and participant information.
+    validations:
+      required: true

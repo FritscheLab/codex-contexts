@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+TOOL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+APP_DIR="${CODEX_MACOS_APP_DIR:-$HOME/Applications}"
+APP_PATH="$APP_DIR/Codex Project.app"
+BACKUP_DIR="$APP_DIR/.codex-project-backups"
+BUNDLE_ID="org.codex-contexts.project"
+PLIST_BUDDY="/usr/libexec/PlistBuddy"
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+
+die() {
+  printf 'install-macos-open-with: %s\n' "$*" >&2
+  exit 1
+}
+
+[[ "$(uname -s)" == "Darwin" ]] || die "this installer is only for macOS"
+command -v osacompile >/dev/null 2>&1 || die "osacompile is required"
+[[ -x /usr/bin/codesign ]] || die "Apple's codesign tool was not found at /usr/bin/codesign"
+[[ -x "$PLIST_BUDDY" ]] || die "PlistBuddy was not found at $PLIST_BUDDY"
+[[ -f "$TOOL_ROOT/macos/CodexProject.applescript" ]] || die "missing AppleScript source"
+[[ -x "$TOOL_ROOT/bin/codex-home" ]] || die "missing executable bin/codex-home"
+
+umask 077
+mkdir -p "$APP_DIR"
+BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-project-app.XXXXXX")"
+trap 'rm -rf "$BUILD_DIR"' EXIT
+BUILT_APP="$BUILD_DIR/Codex Project.app"
+
+osacompile -o "$BUILT_APP" "$TOOL_ROOT/macos/CodexProject.applescript"
+cp "$TOOL_ROOT/bin/codex-home" "$BUILT_APP/Contents/Resources/codex-home"
+chmod 700 "$BUILT_APP/Contents/Resources/codex-home"
+
+INFO_PLIST="$BUILT_APP/Contents/Info.plist"
+"$PLIST_BUDDY" -c "Delete :CFBundleIdentifier" "$INFO_PLIST" >/dev/null 2>&1 || true
+"$PLIST_BUDDY" -c "Add :CFBundleIdentifier string $BUNDLE_ID" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Delete :CFBundleDisplayName" "$INFO_PLIST" >/dev/null 2>&1 || true
+"$PLIST_BUDDY" -c "Add :CFBundleDisplayName string Codex Project" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Delete :LSUIElement" "$INFO_PLIST" >/dev/null 2>&1 || true
+"$PLIST_BUDDY" -c "Add :LSUIElement bool true" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Delete :CFBundleDocumentTypes" "$INFO_PLIST" >/dev/null 2>&1 || true
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes array" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes:0 dict" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes:0:CFBundleTypeName string Folder" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Editor" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes:0:LSHandlerRank string Alternate" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes:0:LSItemContentTypes array" "$INFO_PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleDocumentTypes:0:LSItemContentTypes:0 string public.folder" "$INFO_PLIST"
+
+chmod -R a+rX "$BUILT_APP"
+/usr/bin/codesign --force --deep --sign - "$BUILT_APP" >/dev/null
+
+BACKUP_PATH=""
+if [[ -e "$APP_PATH" ]]; then
+  mkdir -p "$BACKUP_DIR"
+  BACKUP_PATH="$BACKUP_DIR/Codex Project.$(date +%Y%m%d-%H%M%S).$$.app.backup"
+  if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+    if ! "$LSREGISTER" -u "$APP_PATH"; then
+      printf 'Warning: Launch Services did not unregister the previous app immediately.\n' >&2
+    fi
+  fi
+  mv "$APP_PATH" "$BACKUP_PATH"
+fi
+
+if ! mv "$BUILT_APP" "$APP_PATH"; then
+  if [[ -n "$BACKUP_PATH" && -e "$BACKUP_PATH" ]]; then
+    mv "$BACKUP_PATH" "$APP_PATH"
+    if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+      "$LSREGISTER" -f "$APP_PATH" >/dev/null 2>&1 || true
+    fi
+  fi
+  die "could not install $APP_PATH"
+fi
+
+if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+  if ! "$LSREGISTER" -f "$APP_PATH"; then
+    printf 'Warning: Launch Services did not register the app immediately. Finder may discover it after login.\n' >&2
+  fi
+fi
+
+printf 'Installed Finder launcher: %s\n' "$APP_PATH"
+if [[ -n "$BACKUP_PATH" ]]; then
+  printf 'Previous launcher backup: %s\n' "$BACKUP_PATH"
+fi
+printf 'Finder: Control-click a folder, choose Open With > Codex Project, then choose an action or identity.\n'
+printf 'Do not use Change All; Finder should remain the default folder handler.\n'

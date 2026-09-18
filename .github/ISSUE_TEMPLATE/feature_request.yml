@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose a focused improvement without sharing sensitive information.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the workflow and safety boundary, not private project content.
+
+        **Do not paste credentials, tokens, authentication files, private research data, participant data, or unredacted logs.**
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or need
+      description: Explain the general workflow problem with synthetic examples.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful change and its expected interface.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include current workarounds and important tradeoffs, if any.
+
+  - type: textarea
+    id: safety_impact
+    attributes:
+      label: Identity, credential, or data-governance impact
+      description: State whether the change affects credentials, generated files, providers, or research-data handling.
+    validations:
+      required: true

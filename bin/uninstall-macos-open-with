@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+APP_DIR="${CODEX_MACOS_APP_DIR:-$HOME/Applications}"
+APP_PATH="$APP_DIR/Codex Project.app"
+BACKUP_DIR="$APP_DIR/.codex-project-backups"
+TRASH_DIR="${CODEX_MACOS_TRASH_DIR:-$HOME/.Trash}"
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+
+die() {
+  printf 'uninstall-macos-open-with: %s\n' "$*" >&2
+  exit 1
+}
+
+[[ "$(uname -s)" == "Darwin" ]] || die "this uninstaller is only for macOS"
+
+if [[ ! -e "$APP_PATH" ]]; then
+  printf 'Codex Project is not installed at %s\n' "$APP_PATH"
+  exit 0
+fi
+
+if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+  if ! "$LSREGISTER" -u "$APP_PATH"; then
+    printf 'Warning: Launch Services did not unregister the app immediately.\n' >&2
+  fi
+fi
+
+mkdir -p "$TRASH_DIR"
+TRASH_PATH="$TRASH_DIR/Codex Project.$(date +%Y%m%d-%H%M%S).$$.app"
+mv "$APP_PATH" "$TRASH_PATH"
+
+printf 'Moved Finder launcher to Trash: %s\n' "$TRASH_PATH"
+printf 'This did not change project files, Codex identities, credentials, or prerequisites.\n'
+
+if [[ -d "$BACKUP_DIR" ]]; then
+  printf 'Installer backups remain under %s; inspect them before removing them.\n' "$BACKUP_DIR"
+fi
+
+if find "$APP_DIR" -maxdepth 1 -type d \
+  -name 'Codex Project.backup.*.app' -print -quit 2>/dev/null | grep -q .; then
+  printf 'Legacy .app backups remain in %s and may still appear in Finder; see docs/macos-open-with.md.\n' "$APP_DIR"
+fi

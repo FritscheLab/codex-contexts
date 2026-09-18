@@ -1,0 +1,7 @@
+.DS_Store
+
+# Secrets belong in ~/.codex-homes/<identity>/.env, never in this repository.
+.env
+.env.*
+!.env.example
+

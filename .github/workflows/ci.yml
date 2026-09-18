@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CODEX_CLI_VERSION: "0.145.0"
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Ubuntu dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes direnv expect jq
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install direnv jq
+
+      - name: Install supported Codex CLI
+        run: npm install --global "@openai/codex@${CODEX_CLI_VERSION}"
+
+      - name: Check Bash syntax
+        run: bash -n bin/codex-home bin/install-macos-open-with tests/test.sh
+
+      - name: Run tests
+        run: ./tests/test.sh
+
+  documentation:
+    name: Documentation checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install documentation checkers
+        run: |
+          npm install --global markdown-link-check@3.13.7
+          npm install --global @mermaid-js/mermaid-cli@11.12.0
+
+      - name: Check Markdown links
+        run: |
+          find . -type f -name '*.md' -not -path './.git/*' -print0 \
+            | xargs -0 -n 1 markdown-link-check \
+                --config .github/markdown-link-check.json
+
+      - name: Check Mermaid syntax
+        shell: bash
+        run: |
+          mapfile -t diagrams < <(grep -RIl '^```mermaid' \
+            --include='*.md' --exclude-dir=.git .)
+          for index in "${!diagrams[@]}"; do
+            mmdc --quiet \
+              --input "${diagrams[$index]}" \
+              --output "${RUNNER_TEMP}/mermaid-${index}.md" \
+              --puppeteerConfigFile .github/mermaid-puppeteer.json
+          done
