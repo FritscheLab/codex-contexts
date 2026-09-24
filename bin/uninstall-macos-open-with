@@ -5,6 +5,9 @@ set -euo pipefail
 APP_DIR="${CODEX_MACOS_APP_DIR:-$HOME/Applications}"
 APP_PATH="$APP_DIR/Codex Project.app"
 BACKUP_DIR="$APP_DIR/.codex-project-backups"
+SERVICES_DIR="${CODEX_MACOS_SERVICES_DIR:-$HOME/Library/Services}"
+WORKFLOW_PATH="$SERVICES_DIR/Open in Codex Project.workflow"
+WORKFLOW_BACKUP_DIR="$SERVICES_DIR/.codex-project-backups"
 TRASH_DIR="${CODEX_MACOS_TRASH_DIR:-$HOME/.Trash}"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 
@@ -15,29 +18,46 @@ die() {
 
 [[ "$(uname -s)" == "Darwin" ]] || die "this uninstaller is only for macOS"
 
-if [[ ! -e "$APP_PATH" ]]; then
-  printf 'Codex Project is not installed at %s\n' "$APP_PATH"
+[[ ! -L "$APP_PATH" && ! -L "$WORKFLOW_PATH" ]] || die "refusing to remove a symlinked app or Quick Action"
+if [[ -e "$WORKFLOW_PATH" ]]; then
+  [[ "$(/usr/bin/plutil -extract CodexContextsManagedWorkflow raw "$WORKFLOW_PATH/Contents/Info.plist" 2>/dev/null)" == 'codex-contexts-quick-action-v1' ]] ||
+    die "refusing to remove an unrelated Quick Action: $WORKFLOW_PATH"
+fi
+if [[ ! -e "$APP_PATH" && ! -e "$WORKFLOW_PATH" ]]; then
+  printf 'Codex Project and its Quick Action are not installed at the selected locations.\n'
   exit 0
 fi
 
-if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+if [[ -e "$APP_PATH" && "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
   if ! "$LSREGISTER" -u "$APP_PATH"; then
     printf 'Warning: Launch Services did not unregister the app immediately.\n' >&2
   fi
 fi
 
 mkdir -p "$TRASH_DIR"
-TRASH_PATH="$TRASH_DIR/Codex Project.$(date +%Y%m%d-%H%M%S).$$.app"
-mv "$APP_PATH" "$TRASH_PATH"
-
-printf 'Moved Finder launcher to Trash: %s\n' "$TRASH_PATH"
-printf 'This did not change project files, Codex identities, credentials, or prerequisites.\n'
+if [[ -e "$APP_PATH" ]]; then
+  TRASH_PATH="$TRASH_DIR/Codex Project.$(date +%Y%m%d-%H%M%S).$$.app"
+  mv "$APP_PATH" "$TRASH_PATH"
+  printf 'Moved Finder launcher to Trash: %s\n' "$TRASH_PATH"
+fi
+if [[ -e "$WORKFLOW_PATH" ]]; then
+  WORKFLOW_TRASH_PATH="$TRASH_DIR/Open in Codex Project.$(date +%Y%m%d-%H%M%S).$$.workflow"
+  mv "$WORKFLOW_PATH" "$WORKFLOW_TRASH_PATH"
+  printf 'Moved Finder Quick Action to Trash: %s\n' "$WORKFLOW_TRASH_PATH"
+  if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x /System/Library/CoreServices/pbs ]]; then
+    /System/Library/CoreServices/pbs -update || printf 'Warning: reopen Finder to refresh Quick Actions.\n' >&2
+  fi
+fi
+printf 'Project files, identity homes, credentials, named VS Code copies, and dependencies are unchanged.\n'
 
 if [[ -d "$BACKUP_DIR" ]]; then
   printf 'Installer backups remain under %s; inspect them before removing them.\n' "$BACKUP_DIR"
 fi
+if [[ -d "$WORKFLOW_BACKUP_DIR" ]]; then
+  printf 'Quick Action backups remain under %s; inspect them before removing them.\n' "$WORKFLOW_BACKUP_DIR"
+fi
 
 if find "$APP_DIR" -maxdepth 1 -type d \
   -name 'Codex Project.backup.*.app' -print -quit 2>/dev/null | grep -q .; then
-  printf 'Legacy .app backups remain in %s and may still appear in Finder; see docs/macos-open-with.md.\n' "$APP_DIR"
+  printf 'Additional .app backups in %s may appear in Finder; see docs/macos-open-with.md.\n' "$APP_DIR"
 fi

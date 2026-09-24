@@ -5,8 +5,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 TOOL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 APP_DIR="${CODEX_MACOS_APP_DIR:-$HOME/Applications}"
-APP_PATH="$APP_DIR/Codex Project.app"
-BACKUP_DIR="$APP_DIR/.codex-project-backups"
+SERVICES_DIR="${CODEX_MACOS_SERVICES_DIR:-$HOME/Library/Services}"
+WORKFLOW_NAME="Open in Codex Project.workflow"
+WORKFLOW_MARKER="codex-contexts-quick-action-v1"
 BUNDLE_ID="org.codex-contexts.project"
 PLIST_BUDDY="/usr/libexec/PlistBuddy"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
@@ -22,15 +23,31 @@ command -v osacompile >/dev/null 2>&1 || die "osacompile is required"
 [[ -x "$PLIST_BUDDY" ]] || die "PlistBuddy was not found at $PLIST_BUDDY"
 [[ -f "$TOOL_ROOT/macos/CodexProject.applescript" ]] || die "missing AppleScript source"
 [[ -x "$TOOL_ROOT/bin/codex-home" ]] || die "missing executable bin/codex-home"
+[[ -f "$TOOL_ROOT/config/umgpt-models.toml" ]] || die "missing U-M GPT model defaults"
+[[ -f "$TOOL_ROOT/macos/OpenInCodexProject.workflow/Contents/Resources/document.wflow" ]] || die "missing Quick Action template"
 
 umask 077
-mkdir -p "$APP_DIR"
+mkdir -p "$APP_DIR" "$SERVICES_DIR"
+APP_DIR="$(cd "$APP_DIR" && pwd -P)"
+SERVICES_DIR="$(cd "$SERVICES_DIR" && pwd -P)"
+APP_PATH="$APP_DIR/Codex Project.app"
+BACKUP_DIR="$APP_DIR/.codex-project-backups"
+WORKFLOW_PATH="$SERVICES_DIR/$WORKFLOW_NAME"
+WORKFLOW_BACKUP_DIR="$SERVICES_DIR/.codex-project-backups"
+[[ ! -L "$APP_PATH" && ! -L "$WORKFLOW_PATH" ]] || die "refusing to replace a symlinked app or Quick Action"
+if [[ -e "$WORKFLOW_PATH" ]]; then
+  [[ "$(/usr/bin/plutil -extract CodexContextsManagedWorkflow raw "$WORKFLOW_PATH/Contents/Info.plist" 2>/dev/null)" == "$WORKFLOW_MARKER" ]] ||
+    die "refusing to replace an unrelated Quick Action: $WORKFLOW_PATH"
+fi
 BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-project-app.XXXXXX")"
 trap 'rm -rf "$BUILD_DIR"' EXIT
 BUILT_APP="$BUILD_DIR/Codex Project.app"
+BUILT_WORKFLOW="$BUILD_DIR/$WORKFLOW_NAME"
 
 osacompile -o "$BUILT_APP" "$TOOL_ROOT/macos/CodexProject.applescript"
 cp "$TOOL_ROOT/bin/codex-home" "$BUILT_APP/Contents/Resources/codex-home"
+mkdir -p "$BUILT_APP/Contents/config"
+cp "$TOOL_ROOT/config/umgpt-models.toml" "$BUILT_APP/Contents/config/umgpt-models.toml"
 chmod 700 "$BUILT_APP/Contents/Resources/codex-home"
 
 INFO_PLIST="$BUILT_APP/Contents/Info.plist"
@@ -52,9 +69,40 @@ INFO_PLIST="$BUILT_APP/Contents/Info.plist"
 chmod -R a+rX "$BUILT_APP"
 /usr/bin/codesign --force --deep --sign - "$BUILT_APP" >/dev/null
 
+cp -R "$TOOL_ROOT/macos/OpenInCodexProject.workflow" "$BUILT_WORKFLOW"
+# Automator supplies each selected folder as one argument; Bash %q also protects
+# the fixed application path when its install directory contains shell syntax.
+printf -v WORKFLOW_COMMAND '[[ "$#" -gt 0 ]] || exit 0\nexec /usr/bin/open -a %q -- "$@"\n' "$APP_PATH"
+/usr/bin/plutil -replace actions.0.action.ActionParameters.COMMAND_STRING \
+  -string "$WORKFLOW_COMMAND" "$BUILT_WORKFLOW/Contents/Resources/document.wflow"
+/usr/bin/plutil -lint "$BUILT_WORKFLOW/Contents/Info.plist" \
+  "$BUILT_WORKFLOW/Contents/Resources/document.wflow" >/dev/null
+
 BACKUP_PATH=""
+WORKFLOW_BACKUP_PATH=""
+APP_INSTALL_STARTED=0
+WORKFLOW_INSTALL_STARTED=0
+if [[ -e "$APP_PATH" ]]; then mkdir -p "$BACKUP_DIR"; fi
+if [[ -e "$WORKFLOW_PATH" ]]; then mkdir -p "$WORKFLOW_BACKUP_DIR"; fi
+rollback_install() {
+  if [[ "$APP_INSTALL_STARTED" == 1 && -e "$APP_PATH" ]]; then
+    mv "$APP_PATH" "$BUILD_DIR/failed.app" || return 1
+  fi
+  if [[ "$WORKFLOW_INSTALL_STARTED" == 1 && -e "$WORKFLOW_PATH" ]]; then
+    mv "$WORKFLOW_PATH" "$BUILD_DIR/failed.workflow" || return 1
+  fi
+  if [[ -n "$BACKUP_PATH" && -e "$BACKUP_PATH" ]]; then
+    mv "$BACKUP_PATH" "$APP_PATH" || return 1
+    if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+      "$LSREGISTER" -f "$APP_PATH" >/dev/null 2>&1 || true
+    fi
+  fi
+  if [[ -n "$WORKFLOW_BACKUP_PATH" && -e "$WORKFLOW_BACKUP_PATH" ]]; then
+    mv "$WORKFLOW_BACKUP_PATH" "$WORKFLOW_PATH" || return 1
+  fi
+}
+
 if [[ -e "$APP_PATH" ]]; then
-  mkdir -p "$BACKUP_DIR"
   BACKUP_PATH="$BACKUP_DIR/Codex Project.$(date +%Y%m%d-%H%M%S).$$.app.backup"
   if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
     if ! "$LSREGISTER" -u "$APP_PATH"; then
@@ -64,14 +112,23 @@ if [[ -e "$APP_PATH" ]]; then
   mv "$APP_PATH" "$BACKUP_PATH"
 fi
 
-if ! mv "$BUILT_APP" "$APP_PATH"; then
-  if [[ -n "$BACKUP_PATH" && -e "$BACKUP_PATH" ]]; then
-    mv "$BACKUP_PATH" "$APP_PATH"
-    if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
-      "$LSREGISTER" -f "$APP_PATH" >/dev/null 2>&1 || true
-    fi
+if [[ -e "$WORKFLOW_PATH" ]]; then
+  WORKFLOW_BACKUP_PATH="$WORKFLOW_BACKUP_DIR/Open in Codex Project.$(date +%Y%m%d-%H%M%S).$$.workflow.backup"
+  if ! mv "$WORKFLOW_PATH" "$WORKFLOW_BACKUP_PATH"; then
+    rollback_install || die "installation failed; inspect backups under $BACKUP_DIR and $WORKFLOW_BACKUP_DIR"
+    die "could not back up $WORKFLOW_PATH"
   fi
+fi
+
+APP_INSTALL_STARTED=1
+if ! mv "$BUILT_APP" "$APP_PATH"; then
+  rollback_install || die "installation failed; inspect backups under $BACKUP_DIR and $WORKFLOW_BACKUP_DIR"
   die "could not install $APP_PATH"
+fi
+WORKFLOW_INSTALL_STARTED=1
+if ! mv "$BUILT_WORKFLOW" "$WORKFLOW_PATH"; then
+  rollback_install || die "installation failed; inspect backups under $BACKUP_DIR and $WORKFLOW_BACKUP_DIR"
+  die "could not install $WORKFLOW_PATH"
 fi
 
 if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
@@ -79,10 +136,19 @@ if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
     printf 'Warning: Launch Services did not register the app immediately. Finder may discover it after login.\n' >&2
   fi
 fi
+if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x /System/Library/CoreServices/pbs ]]; then
+  # Refresh Finder's Quick Actions registration.
+  /System/Library/CoreServices/pbs -update || printf 'Warning: reopen Finder to refresh Quick Actions.\n' >&2
+fi
 
 printf 'Installed Finder launcher: %s\n' "$APP_PATH"
+printf 'Installed Finder Quick Action: %s\n' "$WORKFLOW_PATH"
 if [[ -n "$BACKUP_PATH" ]]; then
   printf 'Previous launcher backup: %s\n' "$BACKUP_PATH"
 fi
-printf 'Finder: Control-click a folder, choose Open With > Codex Project, then choose an action or identity.\n'
+if [[ -n "$WORKFLOW_BACKUP_PATH" ]]; then
+  printf 'Previous Quick Action backup: %s\n' "$WORKFLOW_BACKUP_PATH"
+fi
+printf 'Finder: Control-click a folder, choose Quick Actions > Open in Codex Project, then choose an action or identity.\n'
+printf 'If hidden, enable Open in Codex Project in System Settings > Keyboard > Keyboard Shortcuts > Services.\n'
 printf 'Do not use Change All; Finder should remain the default folder handler.\n'

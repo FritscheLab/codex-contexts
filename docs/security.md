@@ -40,17 +40,26 @@ login or API key and keep identity homes private on your computer.
 5. Start a new chat after changing identities.
 6. Keep regulated or restricted data out of any provider not explicitly
    approved for that data.
+7. Treat U-M GPT scope names and warning labels as local guardrails, not as an
+   institutional approval or data classification.
 
 ## Where data lives
 
 | Data | Location | Commit? |
 |---|---|---|
-| ChatGPT login token | `$CODEX_HOME/auth.json` | Never |
+| ChatGPT login token (file-backed identities) | `$CODEX_HOME/auth.json` | Never |
 | API key | `$CODEX_HOME/.env` | Never |
 | Provider URL/model | `$CODEX_HOME/config.toml` | Keep private by default |
+| Recommended U-M GPT model defaults | `config/umgpt-models.toml` in this repository | Yes; model IDs only, no credentials |
+| User's U-M GPT model defaults | `$CODEX_HOMES_ROOT/umgpt-models.toml` | Keep local; model IDs only, no credentials |
 | Project identity selection | `<project>/.envrc` | Review; credential-free when generated, but executable and machine-specific |
 | VS Code visual label | `<project>/.vscode/<folder-name>.code-workspace` | Review; includes the local project and identity labels |
+| VS Code settings and workspace state | `$CODEX_HOME/vscode-user-data` | Never by default |
+| Named VS Code application on macOS | `$CODEX_HOME/vscode-editor/VS Code - <identity>.app` | No; generated from the installed editor |
 | Codex sessions/logs | Under `$CODEX_HOME` | Never by default |
+
+`create-subscription` selects file-backed credentials for new identities;
+`default` keeps its existing credential-storage settings.
 
 New identity directories and private files are created with owner-only
 permissions. `set-key` reads without terminal echo, safely quotes the stored
@@ -74,13 +83,15 @@ The private `.env` is sourced by the helper and parsed by `direnv`. Let
 | Risk or limitation | What it means | Safe practice |
 |---|---|---|
 | Wrong identity | An ordinary VS Code launch may not load the project's `.envrc` and may fall back to `~/.codex`. | Launch with `codex-home vscode` or **Codex Project**, confirm the colored window label, and check `/status`. |
-| Untrusted `.envrc` | An `.envrc` is executable shell code, even when it contains no credential value. | Read every new or changed `.envrc` before running `direnv allow`. The Finder app previews generated changes and defaults to leaving them unapproved. |
+| Untrusted `.envrc` | An `.envrc` is executable shell code, even when it contains no credential value. | Read every new or changed `.envrc` before running `direnv allow`. The Finder app requires opening the review and choosing **Approve & Open** before approving generated changes. |
 | Credential exposure | API keys are placed in the selected Codex/VS Code process environment. Processes running as the same operating-system user may be able to inspect them. | Use `codex-home set-key`; never paste keys or `auth.json` into source files, chat, issues, or logs. Lock and encrypt the computer according to organizational policy. |
 | Cloud synchronization | Identity homes contain credentials, sessions, logs, and configuration. | Keep `~/.codex` and `~/.codex-homes` on the local computer and out of synchronized folders. |
 | Local paths | Generated files contain local paths and identity labels. They may reveal usernames or fail on another computer. | Keep them local. The helper adds Git exclusions when possible. To share them, agree on portable paths, remove the exclusions, and review each change before `direnv allow`. |
 | Existing chats | Changing windows or identity variables does not change the account or provider of a chat already in progress. | Start a new Codex chat after switching identities. |
 | Provider compatibility | A model list or text reply does not test Codex tool calls or streaming. | Run `models` and `doctor`, then test tool calls in a temporary project. |
 | Data governance | Identity separation does not determine whether a provider is approved for PHI, PII, controlled research data, or unpublished data. | Follow applicable organizational and institutional data-handling rules and the provider agreement before sending data. |
+| Local U-M GPT model scopes | `create-umgpt` pins GPT and o-series text IDs to U-M's Azure OpenAI-backed Toolkit gateway. This is distinct from direct OpenAI products. `create-umgpt-low` permits broader text models and adds a **LOW-SENSITIVITY DATA ONLY** warning. Direct `codex` launches or manual identity edits are outside this guardrail. | Launch through `codex-home`, check `/status`, and verify current U-M approval for the selected model, workflow, and data. Migrate an older U-M identity with `set-umgpt-scope` before use. |
+| Stale U-M GPT defaults | The repository file records recommendations and the local file records user choices. Neither tracks the live gateway or establishes approval. | Use `models umgpt` or `models umgpt-low` to inspect the live scoped list. Update a local choice with `set-umgpt-default`, or use `reset-umgpt-defaults` to deliberately adopt newly pulled repository recommendations. Recheck institutional guidance before use. |
 | U-M GPT model restrictions | U-M's ITS AI Services guide excludes all U-M GPT Claude models and Llama 4 Maverick from PHI use. General service permissions do not establish approval for a Codex CLI/API workflow. | Check the [current ITS service entry](https://safecomputing.umich.edu/dataguide/service/75), the [model descriptions](https://its.umich.edu/computing/ai/gpt-in-depth#models), and your unit's requirements before using sensitive data. |
 | No security sandbox | Separate `CODEX_HOME` and VS Code user-data directories prevent accidental state mixing; they do not isolate hostile code or processes. | Run only trusted code and use an appropriate managed or sandboxed environment for sensitive work. |
 

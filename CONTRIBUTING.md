@@ -23,8 +23,17 @@ Follow [INSTALLATION.md](INSTALLATION.md), then run:
 Keep the helper compatible with Bash 3.2, including the system Bash on macOS.
 The default tests must run without credentials or a live provider.
 
-Generated configuration has been checked with Codex CLI 0.145.0. Rerun the
-tests after updating Codex because its settings and provider support can change.
+The [CI workflow](.github/workflows/ci.yml) runs offline tests with command
+mocks on Linux and macOS. It does not install Codex or validate configuration
+against a real Codex release. With Codex installed, you can opt into doctor
+checks that may contact configured services:
+
+```bash
+CODEX_CONTEXTS_LIVE_TESTS=1 ./tests/test.sh
+```
+
+Run these checks when assessing compatibility with a Codex release; its settings
+and provider support can change.
 
 ## Making a change
 
@@ -35,7 +44,9 @@ tests after updating Codex because its settings and provider support can change.
 4. Run the test suite and Bash syntax checks locally:
 
    ```bash
-   bash -n bin/codex-home bin/install-macos-open-with tests/test.sh
+   for script in bin/* tests/*.sh; do
+     bash -n "$script"
+   done
    ./tests/test.sh
    ```
 
@@ -47,6 +58,22 @@ For a new API provider or model path, document the exact provider, protocol,
 model, authentication method, and tested tool behavior. A successful model
 listing or plain-text response is not enough to establish full Codex
 compatibility.
+
+## Update the U-M GPT model snapshot
+
+The checked-in snapshot is a dated record for review, not a runtime catalog.
+With a configured, scoped `umgpt` identity and stored key, regenerate it from
+the repository root with:
+
+```bash
+./bin/codex-home snapshot-umgpt-models umgpt docs/umgpt-models-snapshot.md
+```
+
+Do not edit the generated file manually. Review the date, source, model-ID
+changes, and classifications before committing it. Results are specific to
+the credential used; appearance in the snapshot does not establish Codex
+compatibility or institutional approval. The helper never reads this file at
+runtime.
 
 ## Update the printable cheatsheet
 

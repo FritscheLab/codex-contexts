@@ -9,7 +9,7 @@ your normal user. Administrator rights may be needed to install prerequisites.
 |---|---|
 | Clone, run tests, create identities, sign in, or store API keys | No, when using directories you own |
 | Edit shell hooks, approve `.envrc`, or configure a project | No; you need write access to your shell config and project |
-| Install or remove the Finder app in `~/Applications` | No |
+| Install or remove the Finder app and Quick Action in your home directory | No |
 | Install Homebrew on macOS | Usually yes for the initial installation; subsequent `brew install` commands run without `sudo` |
 | Install Debian/Ubuntu packages with `apt` | Yes, through `sudo` or your administrator |
 | Install Codex CLI or VS Code | Depends on the installation location; a system-wide install may need an administrator |
@@ -93,8 +93,9 @@ manager. For additional `direnv` options, see the
 
 ## 2. Enable direnv in your shell
 
-This step is for automatic project selection and the VS Code workflow. You can
-skip the shell hook if you only use `codex-home run NAME` in a terminal.
+The shell hook selects an identity when you enter a configured project in a
+terminal. Finder and the `codex-home vscode` commands call `direnv` directly
+and do not need the hook. You can also skip it when using `codex-home run NAME`.
 
 For zsh, add this line to `~/.zshrc`:
 
@@ -163,7 +164,25 @@ From the clone directory, run `./bin/codex-home run NAME`, replacing `NAME`
 with the identity you created. To select an identity automatically for a
 project or open a labeled VS Code window,
 [assign the identity to a project](docs/projects-vscode.md). On macOS, you can
-also install the optional [Finder “Open With” integration](docs/macos-open-with.md).
+also install the optional [Finder Quick Action](docs/macos-open-with.md):
+
+```bash
+./bin/install-macos-open-with
+```
+
+It installs `~/Applications/Codex Project.app` and
+`~/Library/Services/Open in Codex Project.workflow`. Right-click a project
+folder, then choose **Quick Actions > Open in Codex Project** (or **Services**
+on some macOS menus). The app opens the current context or offers setup,
+change, and removal. **Open With > Codex Project** is an additional route when
+Finder offers it for folders.
+
+On macOS, helper-launched VS Code instances have Dock hover names such as
+`VS Code - work` and `VS Code - default`. They keep the standard VS Code icon.
+See [macOS Dock names](docs/projects-vscode.md#macos-dock-names) for reopening,
+the restriction on directly launching or pinning editor copies, and the
+original-editor opt-out. After quitting, reopen projects through the Finder
+Quick Action or `codex-home`.
 
 After project setup, enter the folder and run `codex-home run`. It uses the
 context selected by `direnv`; you do not need to type the identity name each
@@ -182,10 +201,11 @@ git pull --ff-only
 ```
 
 An update does not rewrite existing identity homes or project `.envrc` files.
-Review release notes or changed documentation for any manual migration steps.
+Check the updated guides for setup changes before launching projects.
 
 If you installed the optional macOS Finder integration, reinstall it after
-updating so the application contains the current helper:
+updating so the application contains the current helper and the Quick Action
+points to that app:
 
 ```bash
 ./bin/install-macos-open-with
@@ -197,6 +217,9 @@ To remove the Finder integration later, run:
 ./bin/uninstall-macos-open-with
 ```
 
-This moves the app to the Trash without changing any folder contexts or Codex
-identity homes. See [Finder “Open With” integration](docs/macos-open-with.md)
-for changing or removing a folder context and for complete cleanup details.
+This moves the app and its owned Quick Action to Trash without changing folder
+contexts or Codex identity homes. Previous installation backups remain
+available. If you customized `CODEX_MACOS_APP_DIR` or `CODEX_MACOS_SERVICES_DIR`,
+use the same values for reinstalling and uninstalling. See the
+[Finder integration guide](docs/macos-open-with.md) for changing or removing a
+folder context and for complete cleanup details.

@@ -1,13 +1,11 @@
 # Security policy
 
-This file explains how to report a vulnerability in this repository. For the
-tool's credential storage, limits, and data-handling guidance,
+For credential storage, limits, and data-handling guidance,
 see [Security model](docs/security.md).
 
 ## Supported versions
 
-Security fixes are made on the latest commit of `main`. Supported tagged
-release lines, when applicable, are listed here.
+Security fixes are made on the latest commit of `main`.
 
 | Version | Supported |
 |---|---|

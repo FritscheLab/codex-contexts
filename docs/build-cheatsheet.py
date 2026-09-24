@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Build the two-page reference: python3 docs/build-cheatsheet.py
 
-Requires ReportLab (python3 -m pip install reportlab). Layout references:
-https://training.github.com/downloads/github-git-cheat-sheet.pdf
-https://opensource.posit.co/resources/cheatsheets/rstudio-ide/rstudio-ide.pdf
-All content and artwork here are original to Codex Contexts.
+Requires ReportLab (python3 -m pip install reportlab).
 """
 
 from pathlib import Path
@@ -79,6 +76,8 @@ def section(title, items, x, y):
     for kind, text in items:
         if kind == "code":
             y = code(text, x, y, COL)
+        elif kind == "small":
+            y = paragraph(text, x, y, COL, SMALL)
         else:
             y = paragraph(text, x, y, COL)
     if y < 104:
@@ -108,7 +107,7 @@ def footer(page, note):
     pdf.setFillColor(MUTED)
     pdf.drawString(MARGIN, 30, "github.com/FritscheLab/codex-contexts")
     pdf.linkURL(REPO, (MARGIN, 27, MARGIN + 190, 40), relative=0)
-    pdf.drawRightString(PAGE_W - MARGIN, 30, f"MIT License  |  18 Sep 2026  |  {page} / 2")
+    pdf.drawRightString(PAGE_W - MARGIN, 30, f"MIT License  |  {page} / 2")
 
 
 pdf = canvas.Canvas(str(OUTPUT), pagesize=letter, invariant=1, pageCompression=1)
@@ -142,9 +141,14 @@ left = section("2  Add ChatGPT accounts", [
      "<b>personal</b> and <b>work</b> are labels, not verified plan names."),
 ], MARGIN, left)
 section("Or use the U-M GPT Toolkit", [
-    ("code", "codex-home create-umgpt MODEL_ID\ncodex-home set-key umgpt"),
-    ("text", f"Get an exact model ID and API key from the {link('U-M GPT guide', 'docs/umgpt.md')}. "
-     "Toolkit API calls incur usage charges. Test tool calls before using research data."),
+    ("code", "codex-home create-umgpt\n"
+     "codex-home create-umgpt-low\n"
+     "codex-home set-key NAME"),
+    ("small", f"Models — repo: <b>config/umgpt-models.toml</b>; local: "
+     f"<b>~/.codex-homes/umgpt-models.toml</b>; live: <b>models NAME</b>. "
+     f"<b>reset-umgpt-defaults</b> adopts repo values. <b>umgpt-low</b> is "
+     f"<b>LOW-SENSITIVITY ONLY</b>. "
+     f"{link('Guide', 'docs/umgpt.md')}."),
 ], MARGIN, left)
 
 right = section("3  Select an identity for a project", [
@@ -188,7 +192,7 @@ left = section("Open and check", [
     ("text", "Confirm the account with <b>/status</b> in Codex."),
 ], MARGIN, 638)
 left = section("Change or remove a project context", [
-    ("text", "Close the old VS Code window first. To select another identity:"),
+    ("text", "Close the project's VS Code window first. To select another identity:"),
     ("code", 'codex-home project-change NAME "$P"\ncodex-home project-review "$P"\ndirenv allow "$P"\ncodex-home vscode-project "$P"'),
     ("text", "Read and close the review window before approval. "
      "Start a new Codex chat."),
@@ -220,10 +224,12 @@ right = section("Quick fixes", [
      "support. Chat Completions alone is insufficient."),
 ], RIGHT, right)
 right = section("Finder on macOS", [
-    ("text", "From the clone directory:"),
-    ("code", "./bin/install-macos-open-with\n./bin/uninstall-macos-open-with"),
-    ("text", "Install or remove the app in <b>~/Applications</b>; no admin rights "
-     "needed. In Finder, Control-click a folder, then <b>Open With &gt; Codex Project</b>."),
+    ("text", "Install from the clone directory:"),
+    ("code", "./bin/install-macos-open-with"),
+    ("text", "Right-click a folder: <b>Quick Actions &gt; Open in Codex Project</b> "
+     "(or <b>Services</b>). Dock hover label: <b>VS Code - NAME</b>. "
+     "After quitting, use Finder or the helper again; do not pin the editor copy. "
+     f"{link('Uninstall instructions', 'docs/macos-open-with.md#uninstall-the-finder-integration')}."),
 ], RIGHT, right)
 
 footer(2, "<b>Before using research data:</b> confirm approval for your provider, model, "

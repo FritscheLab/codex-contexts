@@ -12,8 +12,8 @@ API usage has [separate charges](umgpt.md#costs-and-spending-controls).
 
 ## Choose clear local names
 
-`default` is reserved for the existing `~/.codex` home. The helper never
-creates or rewrites that home.
+`default` is reserved for the existing `~/.codex` home. Identity-creation
+commands do not overwrite it or any other existing identity.
 
 Create and sign in to as many additional identities as you need:
 
@@ -31,17 +31,18 @@ Create and sign in to as many additional identities as you need:
 Check the account and workspace in the browser before approving each login.
 Codex uses the account you select there, regardless of the local identity name.
 
-Each identity keeps file-backed credentials in a different directory:
+Each identity created by `create-subscription` uses file-backed credentials
+in its own directory:
 
 ```text
-~/.codex/auth.json
 ~/.codex-homes/personal/auth.json
 ~/.codex-homes/work/auth.json
 ~/.codex-homes/edu/auth.json
 ```
 
 `auth.json` stores credentials in plain text. Keep each identity home private
-and sign in separately on each computer.
+and sign in separately on each computer. The `default` identity retains its
+existing credential-storage settings.
 
 ## Verify each identity
 
@@ -93,7 +94,7 @@ Log out of the affected identity and sign in again:
 This does not log out `default`, `personal`, `edu`, or any other separate
 identity.
 
-## Why Codex config profiles are not used
+## Identity homes and config profiles
 
 Codex config profiles change settings within a single `CODEX_HOME` and share
 its cached login. Separate homes keep each account's credentials, sessions,

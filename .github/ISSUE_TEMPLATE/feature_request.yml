@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Describe the workflow and safety boundary, not private project content.
+        Describe the workflow using synthetic examples.
 
         **Do not paste credentials, tokens, authentication files, private research data, participant data, or unredacted logs.**
 

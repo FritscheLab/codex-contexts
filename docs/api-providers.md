@@ -11,7 +11,8 @@ Other providers supported by Codex need manual setup.
 | ChatGPT sign-in | Built-in `openai` provider | Yes | `create-subscription` |
 | Responses-compatible bearer-token API | Custom provider | Yes | `create-api` |
 | Direct Azure OpenAI Responses endpoint | Custom provider | Yes | `create-azure` |
-| U-M GPT gateway (including Claude model IDs) | Custom provider; test access and compatibility for each model | Yes | `create-umgpt` |
+| U-M GPT, Azure OpenAI text-model scope | U-M gateway; permits GPT and o-series text IDs on U-M's Azure OpenAI-backed path | Yes | `create-umgpt` |
+| U-M GPT, broader text-model scope | Custom provider; permits other vendors and shows a low-sensitivity warning | Yes | `create-umgpt-low` |
 | Ollama or LM Studio | Built-in local OSS mode | No | Configure Codex `--oss` or `oss_provider` manually |
 | Amazon Bedrock | Built-in `amazon-bedrock` provider for supported OpenAI models | No | Configure Codex and AWS authentication manually |
 | Command-backed bearer token | Custom provider authentication | Manual only | Edit the identity's `config.toml` |
@@ -28,10 +29,11 @@ covered by this repository's tests.
 - exposes an OpenAI Responses-compatible endpoint at the configured base URL;
 - supports the selected model ID through that endpoint.
 
-The model can come from OpenAI or another vendor. For example, U-M GPT lists
-Claude models; test each selected model with Codex's Responses requests and
-tool calls. U-M GPT requires its own API key and bills Toolkit usage
-separately; see the [cost and quota guidance](umgpt.md#costs-and-spending-controls).
+The model can come from OpenAI or another vendor. For U-M GPT, prefer the
+scoped commands below instead of a generic `create-api` identity. Test each
+selected model with Codex's Responses requests and tool calls. U-M GPT requires
+its own API key and bills Toolkit usage separately; see the
+[cost and quota guidance](umgpt.md#costs-and-spending-controls).
 
 `responses` is the only supported custom-provider `wire_api` value. A service
 described as “OpenAI compatible” may support only Chat Completions, which this
@@ -41,6 +43,96 @@ own setup, described below.
 Put provider and authentication settings in `$CODEX_HOME/config.toml`. Codex
 ignores provider redirection in a project's `.codex/config.toml`, so the helper
 selects a separate home for each provider.
+
+## U-M GPT model scopes
+
+Use the normal identity for Azure OpenAI text models provided through the U-M
+Toolkit gateway:
+
+```bash
+./bin/codex-home create-umgpt
+./bin/codex-home set-key umgpt
+```
+
+This identity is pinned to U-M's Toolkit URL; it does not call
+`api.openai.com` or a user-managed Azure endpoint. ITS describes its AI
+services as running in a private Microsoft Azure environment and U-M GPT as
+providing Azure OpenAI models. See the
+[U-M GPT guide](umgpt.md#what-azure-openai-means-here) for the official-source
+links and the distinction from direct OpenAI products.
+
+Use a separate, visibly labeled identity for other general text models such as
+Claude:
+
+```bash
+./bin/codex-home create-umgpt-low
+./bin/codex-home set-key umgpt-low
+```
+
+With no `MODEL` argument, these commands use the saved local defaults. For the
+standard `umgpt` or `umgpt-low` name, an explicit `MODEL` also becomes that
+identity's local default.
+
+The checked-in [`config/umgpt-models.toml`](../config/umgpt-models.toml)
+contains this repository's two recommended model IDs. Each user can differ
+through `$CODEX_HOMES_ROOT/umgpt-models.toml` (`~/.codex-homes` is the default
+root). Show both sets of values with:
+
+```bash
+./bin/codex-home umgpt-defaults
+```
+
+Update one local default and its existing standard identity with:
+
+```bash
+./bin/codex-home set-umgpt-default umgpt GPT_MODEL
+./bin/codex-home set-umgpt-default umgpt-low OTHER_TEXT_MODEL
+```
+
+Alternatively, edit the path printed by `umgpt-defaults`, then validate and
+apply both values:
+
+```bash
+./bin/codex-home apply-umgpt-defaults
+```
+
+After pulling a change to the checked-in recommendations, explicitly copy
+both into the local file and update existing standard identities with:
+
+```bash
+./bin/codex-home reset-umgpt-defaults
+```
+
+Applying or resetting defaults updates only standard identities named `umgpt`
+and `umgpt-low`, and skips either one that has not been created. Resetting
+overwrites local choices; merely pulling the repository does not. Discover
+newly available model IDs from the live gateway rather than treating either
+TOML file as a catalog:
+
+```bash
+./bin/codex-home models umgpt
+./bin/codex-home models umgpt-low
+```
+
+Both commands reject image-generation and embedding models. `models NAME`
+filters the gateway's model list to the identity's scope, and `run` validates
+the effective model and blocks configuration overrides that could bypass that
+scope. `umgpt` accepts IDs matching the shell patterns `gpt-*` or `o[0-9]*`;
+`umgpt-low` accepts all IDs except those containing `image` or `embedding`, so
+it is a superset. These are name-based heuristics; see the
+[exact filtering rules and generated snapshot](umgpt.md#exact-local-filtering-rules).
+Older U-M GPT identities created before scopes were introduced must be
+classified before launch:
+
+```bash
+./bin/codex-home set-umgpt-scope umgpt openai-only
+```
+
+Choose `low-sensitivity` only for an identity whose configured model and
+intended data satisfy current U-M rules. The scope names and warnings are local
+guardrails; they do not certify that any model, Codex workflow, or data type is
+institutionally approved. See [U-M GPT](umgpt.md) for setup and governance
+details.
 
 ## Generic bearer-token gateway
 
@@ -123,7 +215,8 @@ Get the API version and deployment or model name from your Azure resource
 administrator. Also confirm the endpoint and authentication headers: some
 Azure setups use a different format.
 
-For the U-M GPT gateway, use `create-umgpt` with its existing URL.
+For the U-M GPT gateway, use `create-umgpt` or `create-umgpt-low` rather than a
+direct Azure identity.
 
 ## Upstream capabilities not managed here
 

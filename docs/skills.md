@@ -62,7 +62,8 @@ on without replacing it. To resolve a conflict:
 ## What is not shared
 
 - `.system` stays managed per Codex home.
-- Authentication, sessions, logs, config, and API keys remain isolated.
+- Authentication, sessions, logs, config, and API keys stay in each identity's
+  home; the command does not share them.
 - Plugins and their state are not copied by this command.
 - A skill installed only in another identity stays local to that identity.
 

@@ -1,0 +1,13 @@
+# Repository defaults for the two standard U-M GPT identities.
+#
+# Maintainers: update these two IDs when the recommended models change.
+# Users: after pulling an update, run `codex-home reset-umgpt-defaults` to
+# adopt these values, or use `set-umgpt-default` to keep a local choice.
+#
+# This is not a model catalog. `codex-home models umgpt` and
+# `codex-home models umgpt-low` query the U-M Toolkit gateway live.
+# The normal identity accepts GPT and o-series text IDs; the low-sensitivity
+# identity accepts general text IDs while excluding image and embedding IDs.
+
+umgpt = "gpt-6-sol"
+umgpt_low = "claude-sonnet-5"

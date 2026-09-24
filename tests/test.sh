@@ -165,10 +165,127 @@ assert_api_config \
   azure-lab deployment-name https://azure.example.test/openai AZURE_LAB_API_KEY \
   2025-04-01-preview
 
-"$TOOL" create-umgpt um-model >/dev/null
+seeded_homes="$TEST_ROOT/seeded-homes"
+CODEX_HOMES_ROOT="$seeded_homes" \
+  "$TOOL" create-api umgpt \
+    https://api.toolkit.umgpt.umich.edu/v1 gpt-5.6-terra UMGPT_API_KEY >/dev/null
+CODEX_HOMES_ROOT="$seeded_homes" \
+  "$TOOL" create-api umgpt-low \
+    https://api.toolkit.umgpt.umich.edu/v1 claude-opus-5 UMGPT_API_KEY >/dev/null
+CODEX_HOMES_ROOT="$seeded_homes" "$TOOL" umgpt-defaults >/dev/null
+assert_line_once "$seeded_homes/umgpt-models.toml" 'umgpt = "gpt-5.6-terra"'
+assert_line_once "$seeded_homes/umgpt-models.toml" 'umgpt_low = "claude-opus-5"'
+
+explicit_homes="$TEST_ROOT/explicit-homes"
+CODEX_HOMES_ROOT="$explicit_homes" \
+  "$TOOL" create-umgpt gpt-6-luna >/dev/null
+CODEX_HOMES_ROOT="$explicit_homes" \
+  "$TOOL" create-umgpt-low claude-opus-5-5 >/dev/null
+assert_line_once "$explicit_homes/umgpt-models.toml" 'umgpt = "gpt-6-luna"'
+assert_line_once "$explicit_homes/umgpt-models.toml" 'umgpt_low = "claude-opus-5-5"'
+
+umgpt_defaults="$("$TOOL" umgpt-defaults)"
+grep -Fq "Repository defaults: $ROOT/config/umgpt-models.toml" \
+  <<< "$umgpt_defaults"
+grep -Fq "Local defaults: $CODEX_HOMES_ROOT/umgpt-models.toml" \
+  <<< "$umgpt_defaults"
+grep -Fq '  umgpt     gpt-6-sol  (U-M Azure OpenAI text only)' <<< "$umgpt_defaults"
+grep -Fq '  umgpt-low claude-sonnet-5  (LOW-SENSITIVITY DATA ONLY)' \
+  <<< "$umgpt_defaults"
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-6-sol"'
+assert_line_once \
+  "$CODEX_HOMES_ROOT/umgpt-models.toml" \
+  'umgpt_low = "claude-sonnet-5"'
+
+"$TOOL" create-umgpt >/dev/null
+[[ "$(cat "$CODEX_HOMES_ROOT/umgpt/.identity-kind")" == "umgpt-openai" ]]
 assert_api_config \
   "$CODEX_HOMES_ROOT/umgpt/config.toml" \
-  umgpt um-model https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
+  umgpt gpt-6-sol https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
+
+if "$TOOL" create-umgpt claude-sonnet-5 umgpt-claude >/dev/null 2>&1; then
+  fail "create-umgpt accepted a non-OpenAI model"
+fi
+[[ ! -e "$CODEX_HOMES_ROOT/umgpt-claude" ]] ||
+  fail "rejected U-M GPT identity left a partial directory"
+if "$TOOL" create-umgpt gpt-image-2 umgpt-image >/dev/null 2>&1; then
+  fail "create-umgpt accepted an image-generation model"
+fi
+
+"$TOOL" create-umgpt-low >/dev/null
+[[ "$(cat "$CODEX_HOMES_ROOT/umgpt-low/.identity-kind")" == "umgpt-low" ]]
+assert_api_config \
+  "$CODEX_HOMES_ROOT/umgpt-low/config.toml" \
+  umgpt-low claude-sonnet-5 https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
+if "$TOOL" create-umgpt-low text-embedding-3-large umgpt-embedding >/dev/null 2>&1; then
+  fail "create-umgpt-low accepted an embedding model"
+fi
+
+umgpt_status="$("$TOOL" show umgpt)"
+grep -Fq 'Model scope     : U-M Azure OpenAI text models only' <<< "$umgpt_status"
+umgpt_low_status="$("$TOOL" show umgpt-low)"
+grep -Fq 'Model scope     : broader U-M text models; LOW-SENSITIVITY DATA ONLY' \
+  <<< "$umgpt_low_status"
+
+"$TOOL" set-umgpt-default umgpt gpt-6-luna >/dev/null
+"$TOOL" set-umgpt-default umgpt-low claude-opus-5-5 >/dev/null
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-6-luna"'
+assert_line_once \
+  "$CODEX_HOMES_ROOT/umgpt-models.toml" \
+  'umgpt_low = "claude-opus-5-5"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-6-luna"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" 'model = "claude-opus-5-5"'
+
+"$TOOL" reset-umgpt-defaults >/dev/null
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-6-sol"'
+assert_line_once \
+  "$CODEX_HOMES_ROOT/umgpt-models.toml" \
+  'umgpt_low = "claude-sonnet-5"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-6-sol"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" 'model = "claude-sonnet-5"'
+
+# Manual edits are supported: validate and apply both values in one command.
+sed 's/gpt-6-sol/gpt-6-luna/; s/claude-sonnet-5/claude-opus-5-5/' \
+  "$CODEX_HOMES_ROOT/umgpt-models.toml" > "$TEST_ROOT/umgpt-models-edited.toml"
+mv "$TEST_ROOT/umgpt-models-edited.toml" "$CODEX_HOMES_ROOT/umgpt-models.toml"
+"$TOOL" apply-umgpt-defaults >/dev/null
+assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-6-luna"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" 'model = "claude-opus-5-5"'
+
+models_before_invalid="$(cat "$CODEX_HOMES_ROOT/umgpt-models.toml")"
+printf '%s\n' \
+  'umgpt = "gpt-6-sol"' \
+  'umgpt = "gpt-6-luna"' \
+  'umgpt_low = "claude-sonnet-5"' \
+  > "$CODEX_HOMES_ROOT/umgpt-models.toml"
+if "$TOOL" apply-umgpt-defaults >/dev/null 2>&1; then
+  fail "apply-umgpt-defaults accepted duplicate model keys"
+fi
+printf '%s\n' "$models_before_invalid" > "$CODEX_HOMES_ROOT/umgpt-models.toml"
+
+models_before_invalid="$(cat "$CODEX_HOMES_ROOT/umgpt-models.toml")"
+if "$TOOL" set-umgpt-default umgpt claude-sonnet-5 >/dev/null 2>&1; then
+  fail "set-umgpt-default accepted a non-OpenAI model for umgpt"
+fi
+[[ "$(cat "$CODEX_HOMES_ROOT/umgpt-models.toml")" == "$models_before_invalid" ]] ||
+  fail "a rejected U-M GPT default changed the models file"
+"$TOOL" reset-umgpt-defaults >/dev/null
+
+"$TOOL" create-api umgpt-legacy \
+  https://api.toolkit.umgpt.umich.edu/v1 gpt-5 UMGPT_API_KEY >/dev/null
+legacy_status="$("$TOOL" show umgpt-legacy)"
+grep -Fq 'Model scope     : UNSET; run set-umgpt-scope before launching Codex' \
+  <<< "$legacy_status"
+"$TOOL" set-umgpt-scope umgpt-legacy openai-only >/dev/null
+[[ "$(cat "$CODEX_HOMES_ROOT/umgpt-legacy/.identity-kind")" == "umgpt-openai" ]]
+
+"$TOOL" create-api umgpt-legacy-claude \
+  https://api.toolkit.umgpt.umich.edu/v1 claude-opus-5 UMGPT_API_KEY >/dev/null
+if "$TOOL" set-umgpt-scope umgpt-legacy-claude openai-only >/dev/null 2>&1; then
+  fail "set-umgpt-scope marked a Claude identity OpenAI-only"
+fi
+"$TOOL" set-umgpt-scope umgpt-legacy-claude low-sensitivity >/dev/null
+[[ "$(cat "$CODEX_HOMES_ROOT/umgpt-legacy-claude/.identity-kind")" == "umgpt-low" ]]
 
 mkdir -p "$TEST_ROOT/shared-skills/skill-two"
 printf '%s\n' '# Skill two' > "$TEST_ROOT/shared-skills/skill-two/SKILL.md"
@@ -176,6 +293,7 @@ printf '%s\n' '# Skill two' > "$TEST_ROOT/shared-skills/skill-two/SKILL.md"
 [[ -L "$CODEX_HOMES_ROOT/lab-api/skills/skill-two" ]]
 [[ -L "$CODEX_HOMES_ROOT/azure-lab/skills/skill-two" ]]
 [[ -L "$CODEX_HOMES_ROOT/umgpt/skills/skill-two" ]]
+[[ -L "$CODEX_HOMES_ROOT/umgpt-low/skills/skill-two" ]]
 
 for reserved_provider in openai ollama lmstudio amazon-bedrock; do
   if "$TOOL" create-api \
@@ -241,7 +359,7 @@ printf '%s\n' \
   '#!/usr/bin/env bash' \
   'printf "%s\n" "$@" > "$CODEX_TEST_CURL_ARGS"' \
   'cat > "$CODEX_TEST_CURL_CONFIG"' \
-  'printf "%s\n" "{\"data\":[{\"id\":\"model-a\"},{\"id\":\"model-b\"}]}"' \
+  'printf "%s\n" "{\"data\":[{\"id\":\"model-a\"},{\"id\":\"model-b\"},{\"id\":\"gpt-6-sol\"},{\"id\":\"o3\"},{\"id\":\"claude-sonnet-5\"},{\"id\":\"gpt-image-2\"},{\"id\":\"text-embedding-3-large\"}]}"' \
   > "$TEST_ROOT/fake-curl-bin/curl"
 chmod +x "$TEST_ROOT/fake-curl-bin/curl"
 models_output="$(
@@ -259,6 +377,98 @@ if grep -q 'test-secret' "$TEST_ROOT/curl-args"; then
   exit 1
 fi
 grep -q 'Authorization: Bearer test-secret' "$TEST_ROOT/curl-config"
+
+printf 'UMGPT_API_KEY=umgpt-test-secret\n' > "$CODEX_HOMES_ROOT/umgpt/.env"
+printf 'UMGPT_API_KEY=umgpt-test-secret\n' > "$CODEX_HOMES_ROOT/umgpt-low/.env"
+chmod 600 "$CODEX_HOMES_ROOT/umgpt/.env" "$CODEX_HOMES_ROOT/umgpt-low/.env"
+umgpt_models_output="$(
+  CODEX_TEST_CURL_ARGS="$TEST_ROOT/umgpt-curl-args" \
+  CODEX_TEST_CURL_CONFIG="$TEST_ROOT/umgpt-curl-config" \
+  PATH="$TEST_ROOT/fake-curl-bin:$PATH" \
+  "$TOOL" models umgpt
+)"
+grep -q '^  gpt-6-sol$' <<< "$umgpt_models_output"
+grep -q '^  o3$' <<< "$umgpt_models_output"
+if grep -Eq '^  (claude-sonnet-5|gpt-image-2|text-embedding-3-large)$' \
+  <<< "$umgpt_models_output"; then
+  fail "models umgpt displayed a model outside the OpenAI text scope"
+fi
+grep -Fq 'Hidden by this identity scope: 5 model(s).' <<< "$umgpt_models_output"
+
+umgpt_low_models_output="$(
+  CODEX_TEST_CURL_ARGS="$TEST_ROOT/umgpt-low-curl-args" \
+  CODEX_TEST_CURL_CONFIG="$TEST_ROOT/umgpt-low-curl-config" \
+  PATH="$TEST_ROOT/fake-curl-bin:$PATH" \
+  "$TOOL" models umgpt-low
+)"
+grep -q '^  gpt-6-sol$' <<< "$umgpt_low_models_output"
+grep -q '^  claude-sonnet-5$' <<< "$umgpt_low_models_output"
+if grep -Eq '^  (gpt-image-2|text-embedding-3-large)$' <<< "$umgpt_low_models_output"; then
+  fail "models umgpt-low displayed a non-text model"
+fi
+grep -Fq 'Hidden by this identity scope: 2 model(s).' <<< "$umgpt_low_models_output"
+
+# The checked-in model snapshot is generated from one raw catalog response,
+# sorted and deduplicated, and never becomes a runtime input.
+mkdir -p "$TEST_ROOT/snapshot-curl-bin"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'printf "%s\n" "$@" > "$CODEX_TEST_CURL_ARGS"' \
+  'cat > "$CODEX_TEST_CURL_CONFIG"' \
+  'printf "%s\n" "{\"data\":[{\"id\":\"model-b\"},{\"id\":\"gpt-image-2\"},{\"id\":\"o3\"},{\"id\":\"claude-sonnet-5\"},{\"id\":\"gpt-6-sol\"},{\"id\":\"model-a\"},{\"id\":\"text-embedding-3-large\"},{\"id\":\"o3\"}]}"' \
+  > "$TEST_ROOT/snapshot-curl-bin/curl"
+chmod +x "$TEST_ROOT/snapshot-curl-bin/curl"
+snapshot_file="$TEST_ROOT/umgpt-models-snapshot.md"
+snapshot_output="$(
+  CODEX_UMGPT_SNAPSHOT_DATE=2026-09-24 \
+  CODEX_TEST_CURL_ARGS="$TEST_ROOT/snapshot-curl-args" \
+  CODEX_TEST_CURL_CONFIG="$TEST_ROOT/snapshot-curl-config" \
+  PATH="$TEST_ROOT/snapshot-curl-bin:$PATH" \
+  "$TOOL" snapshot-umgpt-models umgpt "$snapshot_file"
+)"
+grep -Fq "Updated U-M GPT model snapshot: $snapshot_file" <<< "$snapshot_output"
+grep -Fq -- '- **Generated:** 2026-09-24' "$snapshot_file"
+grep -Fq -- '- **Advertised IDs:** 7' "$snapshot_file"
+grep -Fq -- '- **Matches `umgpt`:** 2' "$snapshot_file"
+grep -Fq -- '- **Matches `umgpt-low`:** 5' "$snapshot_file"
+grep -Fq -- '- **Excluded from both text scopes:** 2' "$snapshot_file"
+assert_line_once "$snapshot_file" '| `gpt-6-sol` | Matches | Matches | GPT/o-series ID without image/embedding |'
+assert_line_once "$snapshot_file" '| `o3` | Matches | Matches | GPT/o-series ID without image/embedding |'
+assert_line_once "$snapshot_file" '| `claude-sonnet-5` | Does not match | Matches | Other ID without image/embedding |'
+assert_line_once "$snapshot_file" '| `gpt-image-2` | Does not match | Does not match | ID contains image or embedding |'
+snapshot_ids="$(sed -nE 's/^\| `([^`]*)` \|.*/\1/p' "$snapshot_file")"
+[[ "$snapshot_ids" == $'claude-sonnet-5\ngpt-6-sol\ngpt-image-2\nmodel-a\nmodel-b\no3\ntext-embedding-3-large' ]] ||
+  fail "snapshot model IDs were not sorted and deduplicated"
+[[ "$snapshot_output" != *'umgpt-test-secret'* ]] ||
+  fail "snapshot command output exposed the U-M GPT API key"
+if grep -Fq 'umgpt-test-secret' "$snapshot_file" "$TEST_ROOT/snapshot-curl-args"; then
+  fail "snapshot generation exposed the U-M GPT API key"
+fi
+if CODEX_TEST_CURL_ARGS="$TEST_ROOT/unexpected-snapshot-curl-args" \
+  CODEX_TEST_CURL_CONFIG="$TEST_ROOT/unexpected-snapshot-curl-config" \
+  PATH="$TEST_ROOT/snapshot-curl-bin:$PATH" \
+  "$TOOL" snapshot-umgpt-models lab-api "$TEST_ROOT/generic-snapshot.md" \
+  >/dev/null 2>&1; then
+  fail "snapshot generation accepted a generic API identity"
+fi
+[[ ! -e "$TEST_ROOT/unexpected-snapshot-curl-args" ]] ||
+  fail "rejected snapshot identity contacted the provider"
+
+mkdir -p "$TEST_ROOT/invalid-snapshot-curl-bin"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'cat >/dev/null' \
+  'printf "%s\n" "{\"data\":[{\"id\":\"bad model ID\"}]}"' \
+  > "$TEST_ROOT/invalid-snapshot-curl-bin/curl"
+chmod +x "$TEST_ROOT/invalid-snapshot-curl-bin/curl"
+printf '%s\n' 'keep this snapshot' > "$TEST_ROOT/snapshot-sentinel.md"
+if PATH="$TEST_ROOT/invalid-snapshot-curl-bin:$PATH" \
+  "$TOOL" snapshot-umgpt-models umgpt "$TEST_ROOT/snapshot-sentinel.md" \
+  >/dev/null 2>&1; then
+  fail "snapshot generation accepted an invalid model ID"
+fi
+[[ "$(cat "$TEST_ROOT/snapshot-sentinel.md")" == 'keep this snapshot' ]] ||
+  fail "failed snapshot generation replaced the existing output"
 
 probe_secret='probe \\ " $ ` ! end'
 CODEX_TEST_TOOL="$TOOL" \
@@ -420,19 +630,19 @@ fi
 exec "$CODEX_TEST_REAL_DIRENV" "$@"
 EOF
 chmod +x "$TEST_ROOT/direnv-deny-bin/direnv"
-# Older direnv versions report an error when denying an unapproved .envrc.
+# A missing approval file must not prevent context replacement.
 CODEX_TEST_DIRENV_DENY_ERROR=missing \
   CODEX_TEST_REAL_DIRENV="$(command -v direnv)" \
   PATH="$TEST_ROOT/direnv-deny-bin:$PATH" \
   "$TOOL" project-change pro "$TEST_ROOT/legacy-project" >/dev/null
 grep -q 'CODEX_IDENTITY="pro"' "$TEST_ROOT/legacy-project/.envrc" ||
-  fail "project-change did not accept a legacy generated workspace"
+  fail "project-change did not accept the generated codex-context.code-workspace"
 [[ ! -e "$legacy_workspace" ]] ||
-  fail "project-change did not remove the legacy workspace"
+  fail "project-change did not remove codex-context.code-workspace"
 grep -Fq '"window.title": "legacy-project [CODEX: PRO]"' \
   "$TEST_ROOT/legacy-project/.vscode/legacy-project.code-workspace"
 if grep -Fqx '/.vscode/codex-context.code-workspace' "$legacy_exclude"; then
-  fail "project-change left the legacy workspace Git exclusion behind"
+  fail "project-change left the codex-context.code-workspace Git exclusion behind"
 fi
 
 mkdir -p "$TEST_ROOT/deny-error-project"
@@ -536,6 +746,54 @@ grep -Fxq -- "$CODEX_HOMES_ROOT/lab-api|lab-api|test-secret" "$TEST_ROOT/codex-e
   fail "run changed arguments for redirected output"
 [[ "$run_output" != *$'\033'* ]] ||
   fail "run emitted terminal controls into redirected output"
+
+umgpt_run_output="$(
+  CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-codex-args" \
+  CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-codex-env" \
+  PATH="$TEST_ROOT/fake-bin:$PATH" \
+  "$TOOL" run umgpt --version 2>&1
+)"
+grep -Fq 'Codex identity: U-M GPT (Azure OpenAI): UMGPT' <<< "$umgpt_run_output"
+[[ "$(cat "$TEST_ROOT/umgpt-codex-args")" == $'--model\ngpt-6-sol\n--version' ]] ||
+  fail "run did not pin the configured U-M GPT OpenAI model"
+
+CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-override-args" \
+  CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-override-env" \
+  PATH="$TEST_ROOT/fake-bin:$PATH" \
+  "$TOOL" run umgpt --model gpt-6-luna 'test prompt' >/dev/null 2>&1
+[[ "$(cat "$TEST_ROOT/umgpt-override-args")" == $'--model\ngpt-6-luna\ntest prompt' ]] ||
+  fail "run did not validate and pass an allowed U-M GPT model override"
+
+if CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-rejected-args" \
+  CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-rejected-env" \
+  PATH="$TEST_ROOT/fake-bin:$PATH" \
+  "$TOOL" run umgpt --model claude-sonnet-5 >/dev/null 2>&1; then
+  fail "run allowed a Claude model in the OpenAI-only U-M GPT identity"
+fi
+[[ ! -e "$TEST_ROOT/umgpt-rejected-args" ]] ||
+  fail "run invoked Codex after rejecting a U-M GPT model"
+if CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-config-bypass-args" \
+  CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-config-bypass-env" \
+  PATH="$TEST_ROOT/fake-bin:$PATH" \
+  "$TOOL" run umgpt -c 'model="claude-sonnet-5"' >/dev/null 2>&1; then
+  fail "run allowed a config override that bypasses the U-M GPT model scope"
+fi
+
+umgpt_low_run_output="$(
+  CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-low-codex-args" \
+  CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-low-codex-env" \
+  PATH="$TEST_ROOT/fake-bin:$PATH" \
+  "$TOOL" run umgpt-low --model claude-opus-5-5 2>&1
+)"
+grep -Fq 'LOW-SENSITIVITY DATA ONLY' <<< "$umgpt_low_run_output"
+[[ "$(cat "$TEST_ROOT/umgpt-low-codex-args")" == $'--model\nclaude-opus-5-5' ]] ||
+  fail "run did not pass an allowed low-sensitivity U-M GPT model override"
+if CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-low-image-args" \
+  CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-low-image-env" \
+  PATH="$TEST_ROOT/fake-bin:$PATH" \
+  "$TOOL" run umgpt-low --model gpt-image-2 >/dev/null 2>&1; then
+  fail "run accepted an image-generation model for the low-sensitivity identity"
+fi
 
 # A configured project's environment supplies the name when it is omitted.
 run_from_project() {
@@ -669,16 +927,35 @@ review_snapshot_path="$(tail -n 1 "$TEST_ROOT/code-review-args")"
 [[ ! -e "$review_snapshot_path" ]] ||
   fail "project-review left its temporary snapshot behind"
 
+bash "$ROOT/tests/project-files.sh"
+bash "$ROOT/tests/project-launch.sh"
+
 if [[ "$(uname -s)" == "Darwin" ]]; then
+  bash "$ROOT/tests/macos-dock.sh"
   CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/services" \
     CODEX_MACOS_SKIP_REGISTER=1 \
     "$ROOT/bin/install-macos-open-with" >/dev/null 2>&1
   test_app="$TEST_ROOT/apps/Codex Project.app"
+  test_workflow="$TEST_ROOT/services/Open in Codex Project.workflow"
+  workflow_plist="$test_workflow/Contents/Info.plist"
+  workflow_document="$test_workflow/Contents/Resources/document.wflow"
   [[ -x "$test_app/Contents/Resources/codex-home" ]]
+  cmp -s \
+    "$ROOT/config/umgpt-models.toml" \
+    "$test_app/Contents/config/umgpt-models.toml" ||
+    fail "Finder launcher did not bundle U-M GPT model defaults"
+  plutil -lint "$workflow_plist" "$workflow_document" >/dev/null
+  [[ "$(plutil -extract NSServices.0.NSMenuItem.default raw "$workflow_plist")" == 'Open in Codex Project' ]]
+  [[ "$(plutil -extract NSServices.0.NSRequiredContext.NSApplicationIdentifier raw "$workflow_plist")" == 'com.apple.finder' ]]
+  [[ "$(plutil -extract NSServices.0.NSSendFileTypes.0 raw "$workflow_plist")" == 'public.folder' ]]
+  [[ "$(plutil -extract workflowMetaData.serviceInputTypeIdentifier raw "$workflow_document")" == 'com.apple.Automator.fileSystemObject.folder' ]]
+  [[ "$(plutil -extract actions.0.action.ActionParameters.inputMethod raw "$workflow_document")" == 1 ]]
+  [[ "$(plutil -extract actions.0.action.ActionParameters.shell raw "$workflow_document")" == /bin/bash ]]
   plutil -p "$test_app/Contents/Info.plist" | grep -q 'public.folder'
   osadecompile "$test_app/Contents/Resources/Scripts/main.scpt" \
     > "$TEST_ROOT/codex-project-app.applescript"
-  grep -Fq 'list --names' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq '"list", "--names"' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Open with current Codex context' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'project-change' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'project-reset' "$TEST_ROOT/codex-project-app.applescript"
@@ -686,6 +963,68 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   grep -Fq 'Review in VS Code' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Review Again' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Approve & Open' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq 'CODEX_VSCODE_DOCK_LABEL=1' "$TEST_ROOT/codex-project-app.applescript"
+
+  # Call compiled non-UI handlers with a recorder instead of opening an editor.
+  apple_mock="$TEST_ROOT/"'helper $dollar & quote'"'"' [x]'
+  printf '%s\n' '#!/bin/bash' \
+    'printf "%s\0" "$@" > "$CODEX_TEST_APPLE_ARGS"' \
+    'printf "%s\n" "${CODEX_VSCODE_DOCK_LABEL:-}" "${CODEX_TEST_LOGIN_SHELL:-}" > "$CODEX_TEST_APPLE_ENV"' \
+    'printf "%s\n" "handler output"' \
+    'exit "${CODEX_TEST_APPLE_EXIT:-0}"' > "$apple_mock"
+  chmod +x "$apple_mock"
+  mkdir -p "$TEST_ROOT/apple-shell"
+  printf '%s\n' 'export CODEX_TEST_LOGIN_SHELL=loaded' > "$TEST_ROOT/apple-shell/.zprofile"
+  apple_folder="$TEST_ROOT/"'folder $literal & quote'"'"' [x]'
+  apple_argument='$(exit 91); `exit 92` "quoted"'
+  CODEX_TEST_APPLE_ARGS="$TEST_ROOT/apple-args" \
+    CODEX_TEST_APPLE_ENV="$TEST_ROOT/apple-env" \
+    ZDOTDIR="$TEST_ROOT/apple-shell" \
+    osascript - "$test_app/Contents/Resources/Scripts/main.scpt" \
+      "$apple_mock" "$apple_folder" "$apple_argument" <<'APPLESCRIPT' > "$TEST_ROOT/apple-output"
+on run arguments
+  set appScript to «event sysoload» (POSIX file (item 1 of arguments))
+  return appScript's runCommand({item 2 of arguments, item 3 of arguments, item 4 of arguments, ""})
+end run
+APPLESCRIPT
+  printf '%s\0' "$apple_folder" "$apple_argument" '' > "$TEST_ROOT/apple-expected-args"
+  cmp -s "$TEST_ROOT/apple-args" "$TEST_ROOT/apple-expected-args" ||
+    fail "AppleScript command runner split or expanded arguments"
+  grep -Fxq 'loaded' "$TEST_ROOT/apple-env" || fail "AppleScript command runner skipped the login shell"
+  grep -Fxq 'handler output' "$TEST_ROOT/apple-output" || fail "AppleScript command runner lost stdout"
+
+  CODEX_TEST_APPLE_ARGS="$TEST_ROOT/apple-args" \
+    CODEX_TEST_APPLE_ENV="$TEST_ROOT/apple-env" CODEX_VSCODE_DOCK_LABEL=0 \
+    ZDOTDIR="$TEST_ROOT/apple-shell" \
+    osascript - "$test_app/Contents/Resources/Scripts/main.scpt" \
+      "$apple_mock" "$apple_folder" <<'APPLESCRIPT' >/dev/null
+on run arguments
+  set appScript to «event sysoload» (POSIX file (item 1 of arguments))
+  appScript's launchProject(item 2 of arguments, item 3 of arguments)
+end run
+APPLESCRIPT
+  printf '%s\0' vscode-project "$apple_folder" > "$TEST_ROOT/apple-expected-args"
+  cmp -s "$TEST_ROOT/apple-args" "$TEST_ROOT/apple-expected-args" ||
+    fail "AppleScript launch handler changed helper arguments"
+  [[ "$(head -n 1 "$TEST_ROOT/apple-env")" == 1 ]] ||
+    fail "AppleScript launch handler did not require Dock identity labels"
+
+  CODEX_TEST_APPLE_ARGS="$TEST_ROOT/apple-args" \
+    CODEX_TEST_APPLE_ENV="$TEST_ROOT/apple-env" CODEX_TEST_APPLE_EXIT=23 \
+    ZDOTDIR="$TEST_ROOT/apple-shell" \
+    osascript - "$test_app/Contents/Resources/Scripts/main.scpt" \
+      "$apple_mock" <<'APPLESCRIPT' >/dev/null
+on run arguments
+  set appScript to «event sysoload» (POSIX file (item 1 of arguments))
+  try
+    appScript's runCommand({item 2 of arguments})
+  on error errorMessage number errorNumber
+    if errorNumber is 23 then return
+    error errorMessage number errorNumber
+  end try
+  error "AppleScript command runner hid the helper failure"
+end run
+APPLESCRIPT
 
   mkdir -p "$TEST_ROOT/app-project"
   "$test_app/Contents/Resources/codex-home" \
@@ -704,23 +1043,97 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     fail "the bundled helper was not added to PATH"
 
   CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/services" \
     CODEX_MACOS_SKIP_REGISTER=1 \
     "$ROOT/bin/install-macos-open-with" >/dev/null 2>&1
   [[ -x "$test_app/Contents/Resources/codex-home" ]]
   find "$TEST_ROOT/apps/.codex-project-backups" -maxdepth 1 -type d \
     -name '*.app.backup' -print -quit | grep -q . ||
     fail "reinstall did not retain a non-application backup"
+  find "$TEST_ROOT/services/.codex-project-backups" -maxdepth 1 -type d \
+    -name '*.workflow.backup' -print -quit | grep -q . ||
+    fail "reinstall did not retain a Quick Action backup"
+
+  # Refuse an unrelated service before touching the existing application.
+  mkdir -p "$TEST_ROOT/foreign-services/Open in Codex Project.workflow"
+  installed_app_inode="$(stat -f %i "$test_app")"
+  if CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/foreign-services" \
+    CODEX_MACOS_SKIP_REGISTER=1 \
+    "$ROOT/bin/install-macos-open-with" >"$TEST_ROOT/foreign-workflow-error" 2>&1; then
+    fail "installer replaced an unrelated Quick Action"
+  fi
+  grep -Fq 'refusing to replace an unrelated Quick Action' "$TEST_ROOT/foreign-workflow-error"
+  if CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/foreign-services" \
+    CODEX_MACOS_TRASH_DIR="$TEST_ROOT/trash" \
+    CODEX_MACOS_SKIP_REGISTER=1 \
+    "$ROOT/bin/uninstall-macos-open-with" >"$TEST_ROOT/foreign-workflow-error" 2>&1; then
+    fail "uninstaller removed an unrelated Quick Action"
+  fi
+  [[ "$(stat -f %i "$test_app")" == "$installed_app_inode" ]] ||
+    fail "foreign Quick Action refusal changed the installed app"
+  [[ -d "$TEST_ROOT/foreign-services/Open in Codex Project.workflow" ]]
 
   CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/services" \
     CODEX_MACOS_TRASH_DIR="$TEST_ROOT/trash" \
     CODEX_MACOS_SKIP_REGISTER=1 \
     "$ROOT/bin/uninstall-macos-open-with" >/dev/null
   [[ ! -e "$test_app" ]]
+  [[ ! -e "$test_workflow" ]]
   find "$TEST_ROOT/trash" -maxdepth 1 -type d -name 'Codex Project.*.app' \
     -print -quit | grep -q . || fail "uninstaller did not move the app to Trash"
+  find "$TEST_ROOT/trash" -maxdepth 1 -type d -name 'Open in Codex Project.*.workflow' \
+    -print -quit | grep -q . || fail "uninstaller did not move the Quick Action to Trash"
   "$TOOL" project-reset "$TEST_ROOT/app-project" >/dev/null
   [[ ! -e "$TEST_ROOT/app-project/.envrc" ]] ||
     fail "repository helper did not reset a context created by the bundled helper"
+
+  # Quick Actions preserve shell metacharacters in app and selected-folder paths.
+  # Record open's arguments without launching an application.
+  quoted_apps="$TEST_ROOT/"'apps $one [x] & quoted'
+  CODEX_MACOS_APP_DIR="$quoted_apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/quoted-services" \
+    CODEX_MACOS_SKIP_REGISTER=1 \
+    "$ROOT/bin/install-macos-open-with" >/dev/null 2>&1
+  quoted_apps="$(cd "$quoted_apps" && pwd -P)"
+  quoted_workflow="$TEST_ROOT/quoted-services/Open in Codex Project.workflow"
+  workflow_command="$(plutil -extract actions.0.action.ActionParameters.COMMAND_STRING raw \
+    "$quoted_workflow/Contents/Resources/document.wflow")"
+  printf -v expected_workflow_command '[[ "$#" -gt 0 ]] || exit 0\nexec /usr/bin/open -a %q -- "$@"' \
+    "$quoted_apps/Codex Project.app"
+  [[ "$workflow_command" == "$expected_workflow_command" ]] ||
+    fail "Quick Action does not target the exact quoted installed app"
+  workflow_mock="$TEST_ROOT/quick-action-open-mock"
+  printf '%s\n' '#!/bin/bash' \
+    'printf "%s\0" "$@" > "$CODEX_QUICK_ACTION_ARGS"' \
+    'exit "${CODEX_QUICK_ACTION_EXIT:-0}"' > "$workflow_mock"
+  chmod +x "$workflow_mock"
+  printf -v workflow_mock_quoted '%q' "$workflow_mock"
+  workflow_mock_command="${workflow_command/exec \/usr\/bin\/open/exec $workflow_mock_quoted}"
+  folder_one="$TEST_ROOT/"'folder $one [x]'
+  folder_two="$TEST_ROOT/"'folder two & quoted'
+  CODEX_QUICK_ACTION_ARGS="$TEST_ROOT/workflow-args" \
+    /bin/bash -c "$workflow_mock_command" -- "$folder_one" "$folder_two"
+  printf '%s\0' -a "$quoted_apps/Codex Project.app" -- "$folder_one" "$folder_two" \
+    > "$TEST_ROOT/workflow-expected-args"
+  cmp -s "$TEST_ROOT/workflow-args" "$TEST_ROOT/workflow-expected-args" ||
+    fail "Quick Action split or changed selected folder arguments"
+  if CODEX_QUICK_ACTION_ARGS="$TEST_ROOT/workflow-args" CODEX_QUICK_ACTION_EXIT=23 \
+    /bin/bash -c "$workflow_mock_command" -- "$folder_one"; then
+    fail "Quick Action hid an open failure"
+  else
+    [[ "$?" == 23 ]] || fail "Quick Action changed the open failure status"
+  fi
+  # An orphaned workflow must still be removable when the app is absent.
+  mv "$quoted_apps/Codex Project.app" "$TEST_ROOT/quoted-app.saved"
+  CODEX_MACOS_APP_DIR="$quoted_apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/quoted-services" \
+    CODEX_MACOS_TRASH_DIR="$TEST_ROOT/trash" \
+    CODEX_MACOS_SKIP_REGISTER=1 \
+    "$ROOT/bin/uninstall-macos-open-with" >/dev/null
+  [[ ! -e "$quoted_workflow" ]] || fail "uninstaller left an orphaned Quick Action"
 fi
 
 if project_error="$("$TOOL" project lab-api "$TEST_ROOT/project" 2>&1)"; then

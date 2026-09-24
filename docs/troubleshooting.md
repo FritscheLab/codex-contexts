@@ -5,23 +5,22 @@
 Inside a configured project, launch it with `codex-home run`. To choose an
 identity explicitly, use `codex-home run NAME`. The helper prints a context
 banner and keeps **[CODEX: NAME]** in the terminal tab/window title. Plain
-`codex` does not use this launcher label. Codex's own footer has no custom
-context-name item.
+`codex` does not use this launcher label. The helper labels the terminal
+title, not Codex's footer.
 
 If the title stays hidden, allow applications to set titles in your terminal's
 settings. See [Terminal context labels](commands.md#keep-the-context-visible-in-the-terminal).
 
-## `run` asks for a name or reports no active project context
+## `run` reports no active project context
 
-An older helper requires `run NAME`. Update your clone and, if installed,
-reinstall the Finder app once per computer; see [Updating](../INSTALLATION.md#updating-this-repository).
-`command -v codex-home` shows which copy your shell uses. `rehash` alone does
-not update that file, and existing projects do not need to be configured again.
+`codex-home run` reads `CODEX_IDENTITY` from your shell. Check the
+[direnv shell hook](../INSTALLATION.md#2-enable-direnv-in-your-shell), review
+and approve the project's `.envrc`, then leave and re-enter the folder. You
+can also choose a context directly with `codex-home run NAME`.
 
-The short command reads `CODEX_IDENTITY` from your shell. If it reports no
-active context, check the [direnv shell hook](../INSTALLATION.md#2-enable-direnv-in-your-shell),
-review and approve the project's `.envrc`, then leave and re-enter the folder.
-You can also choose a context directly with `codex-home run NAME`.
+Run `command -v codex-home` to identify the helper your shell uses. Follow
+[Updating](../INSTALLATION.md#updating-this-repository) to refresh it and the
+Finder integration; existing projects do not need to be configured again.
 
 ## `zsh: permission denied: /path/to/project`
 
@@ -31,6 +30,39 @@ on a separate line. Run one complete command and quote paths containing spaces:
 ```bash
 ./bin/codex-home vscode personal "/path/to/project"
 ```
+
+## VS Code Dock icons look identical on macOS
+
+The icons use the standard VS Code artwork. The helper prepares named editor
+copies under `$CODEX_HOME/vscode-editor/`; hover over a running icon to read
+`VS Code - NAME`, including `VS Code - default`. Window titles and status-bar
+colors also identify the context.
+
+Quit the intended identity and reopen its project through the helper to use
+its named copy. If `CODEX_VSCODE_DOCK_LABEL=0` is set, the helper uses the original
+installed editor without the named copy. An already-running identity keeps
+its original application until it quits.
+
+Clicking a running Dock icon focuses that editor. **After quitting, use
+Finder > Quick Actions > Open in Codex Project, or `codex-home vscode`.**
+Do not pin or directly launch the generated editor apps: a direct macOS launch
+does not supply the identity environment and isolated user-data arguments.
+
+If the installed VS Code version changed, the helper waits until the identity
+is stopped before refreshing its application copy. The existing copy is used
+while the identity is running. For launch or approval errors, run the helper
+from a terminal to read the diagnostic. If macOS reports `Operation not
+permitted`, inspect the named path and its privacy permissions. See
+[macOS Dock names](projects-vscode.md#macos-dock-names).
+
+## Finder does not show Codex Project for a folder
+
+Install or update the Finder integration with `./bin/install-macos-open-with`,
+then right-click the folder itself and choose **Quick Actions > Open in Codex
+Project** (or **Services**). A native **Open With** menu is not available for
+every folder context. Check **Finder > Services** and enable the action in
+Keyboard Shortcuts > Services if necessary. See the
+[Finder menu checks](macos-open-with.md#if-open-in-codex-project-is-not-listed).
 
 ## VS Code CLI is not found
 
@@ -42,16 +74,41 @@ command in PATH**, or set:
 export CODEX_VSCODE_CLI="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 ```
 
-## `project selects '', not 'NAME'`
+## `direnv did not load a Codex identity`
 
-Approve the generated `.envrc`:
+The launcher cannot obtain both `CODEX_IDENTITY` and `CODEX_HOME` from the
+project's `.envrc`. The file may be unapproved or skipped by `direnv`.
+
+Inspect the file and approval state before changing approval:
+
+```bash
+cd "/path/to/project"
+direnv status
+```
+
+Read `.envrc` in a text editor and confirm its identity, home path, and other
+shell commands are intended. Approve it only after that review:
 
 ```bash
 direnv allow "/path/to/project"
 ```
 
-If it selects a different name, inspect `.envrc`; the helper does not overwrite
-an existing selection. Run `direnv reload` after editing.
+## `cannot read .../.envrc`
+
+Inspect the named path, file permissions, and Codex Project's folder access
+under macOS Privacy & Security. `direnv allow` cannot fix a file-access denial.
+Once the file is readable, review it and check its approval with `direnv status`.
+
+## `project selects identity ... but CODEX_HOME is ...`
+
+The identity name and home directory in `.envrc` disagree. Correct the
+configuration through **Set or change Codex identity…**, or follow the
+[project recovery instructions](projects-vscode.md#manual-recovery-for-a-custom-or-shared-setup).
+If the home directory is missing, restore or configure that identity before
+opening the project.
+
+For errors from obsolete Finder or Dock entries, follow
+[launcher recovery](macos-open-with.md#replace-obsolete-launcher-entries).
 
 ## `current` says `default` in VS Code
 
@@ -146,8 +203,8 @@ diagnostics, and sessions.
 
 ## Generated project paths no longer exist
 
-The `.envrc` records absolute paths to this repository and the selected
-identity home. If either location moved, review and update the file, then
+The `.envrc` records absolute paths to the helper's directory and the selected
+identity home. If either location moves, review and update the file, then
 approve the change again:
 
 ```bash
