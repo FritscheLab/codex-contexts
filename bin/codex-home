@@ -553,7 +553,13 @@ create_api_identity() {
   local key_env="$4"
   local api_version="${5:-}"
   local kind="${6:-api-key}"
+  local provider_label="Codex identity: $name"
   local home
+
+  case "$kind" in
+    umgpt-openai) provider_label="U-M GPT Toolkit ($name)" ;;
+    umgpt-low) provider_label="U-M GPT Toolkit ($name; LOW-SENSITIVITY DATA ONLY)" ;;
+  esac
 
   ensure_new_identity "$name"
   validate_provider_name "$name"
@@ -574,7 +580,7 @@ create_api_identity() {
     printf 'model = %s\n' "$(toml_quote "$model")"
     printf 'model_provider = %s\n\n' "$(toml_quote "$name")"
     printf '[model_providers.%s]\n' "$name"
-    printf 'name = %s\n' "$(toml_quote "Codex identity: $name")"
+    printf 'name = %s\n' "$(toml_quote "$provider_label")"
     printf 'base_url = %s\n' "$(toml_quote "$base_url")"
     printf 'env_key = %s\n' "$(toml_quote "$key_env")"
     if [[ -n "$api_version" ]]; then
@@ -2059,15 +2065,29 @@ review_project_envrc() {
 }
 
 project_direnv_exec() {
-  env -u CODEX_IDENTITY -u CODEX_HOME \
+  local project_dir="$1" launch_status
+  shift
+  # Older direnv releases also silence log_error when this format is empty.
+  # Keep diagnostics visible and stream the command's output without buffering.
+  if env -u CODEX_IDENTITY -u CODEX_HOME \
     -u DIRENV_DIFF -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_WATCHES \
-    direnv exec "$@"
+    DIRENV_LOG_FORMAT="${DIRENV_LOG_FORMAT:-direnv: %s}" \
+    direnv exec "$project_dir" "$@"; then
+    return 0
+  else
+    launch_status=$?
+  fi
+  printf 'codex-home: failed to launch project: %s (exit %s)\n' "$project_dir" "$launch_status" >&2
+  printf '%s\n' "codex-home: verify the project's .envrc, required commands, and VS Code CLI; see the diagnostic above" >&2
+  return "$launch_status"
 }
 
 launch_vscode_project_env() {
   local project_dir="$1" expected_name="$2"
   local project_abs helper vscode_cli extensions_dir homes_root
   command -v direnv >/dev/null 2>&1 || die "direnv is not installed"
+  direnv version 2.32.2 >/dev/null ||
+    die "direnv 2.32.2 or newer is required for project path escaping; upgrade direnv"
   [[ -d "$project_dir" ]] || die "project directory does not exist: $project_dir"
   project_abs="$(cd "$project_dir" && pwd -P)"
   validate_single_line "project path" "$project_abs"

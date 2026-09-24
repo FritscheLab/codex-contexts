@@ -4,14 +4,22 @@ Give each project an identity, then launch VS Code with that identity's
 environment. This lets the terminal and Codex extension use the same
 `CODEX_HOME`.
 
+Once prerequisites are installed and the clone is ready (see
+[Installation steps 1–3](../INSTALLATION.md#1-install-prerequisites)),
+[verify an existing identity](commands.md#check-the-selected-identity).
+Run `./bin/codex-home` examples from the clone directory; bare
+`codex-home` works once it is on PATH, including inside an approved generated
+project with the direnv shell hook enabled.
+
 ## Generate project files
+
+Replace `work` with your existing identity and `/path/to/project` with your project path.
 
 ```bash
 ./bin/codex-home project work "/path/to/project"
-direnv allow "/path/to/project"
 ```
 
-Keep the first command on one shell line. Quote paths containing spaces.
+Keep the command on one shell line. Quote paths containing spaces.
 
 The generated `.envrc`:
 
@@ -30,6 +38,17 @@ and sets a status-bar color.
 Review both files before use. They contain no credentials when generated, but
 `.envrc` is executable shell code with local paths and an identity name. The
 workspace also includes that name. Keep these files local to your computer.
+
+You can open a read-only `.envrc` review in VS Code with
+`./bin/codex-home project-review "/path/to/project"`, or use a text editor.
+After reviewing both files, approve `.envrc`:
+
+```bash
+direnv allow "/path/to/project"
+```
+
+Then [run from the terminal](#run-from-the-terminal) or
+[open VS Code](#launch-an-isolated-window).
 
 If the project is already in Git, `codex-home project` adds patterns to
 `.git/info/exclude`. For a repository folder named `project`, they are:
@@ -320,8 +339,10 @@ Open a new integrated terminal:
 codex-home current
 ```
 
-Cross-check the window label/status color and use `/status` in Codex to confirm
-the model/provider.
+Cross-check the selected home and configured provider/model with the window
+label. In the Codex extension, check the account or API-key status in its
+profile menu and the model picker. See [CLI and VS Code verification](commands.md#check-the-selected-identity)
+for what each check establishes.
 
 ## Migrate a generated workspace
 

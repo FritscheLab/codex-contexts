@@ -10,6 +10,9 @@ and Linux, with optional `direnv`, VS Code, and macOS Finder integration.
 
 Developed at the [Fritsche Lab](https://fritschelab.org/), University of Michigan.
 
+**New here?** Follow [Installation](INSTALLATION.md) for the complete macOS or
+Linux setup, from prerequisites through your first identity and project.
+
 ## One account choice per project
 
 Each project's `.envrc` selects an identity and its `CODEX_HOME`. The account,
@@ -68,13 +71,8 @@ and session history. Each VS Code window shows the identity name, with a
 separate VS Code user-data directory per identity. In a configured project's
 terminal, start the selected context with `codex-home run`.
 
-On macOS, the helper opens a named editor copy: hover over its running Dock
-icon to read `VS Code - NAME`. Projects using the same identity reuse its
-instance. In Finder, use **Quick Actions > Open in Codex Project** for a
-configured folder. File managers with folder **Open With** menus can use the
-matching **VS Code - NAME** handler. You can also use `codex-home`; do not pin or directly open the
-generated editor copy, which needs the helper's launch environment. See
-[macOS Dock names](docs/projects-vscode.md#macos-dock-names).
+On macOS, the helper also gives each identity a [named Dock icon](docs/projects-vscode.md#macos-dock-names)
+and offers optional [Finder integration](docs/macos-open-with.md).
 
 The CLI launcher keeps **[CODEX: NAME]** in the terminal tab/window title.
 
@@ -85,44 +83,52 @@ sandbox. Keep credentials and identity homes private. See the
 
 ## Get started
 
-[Install the prerequisites and clone the repository](INSTALLATION.md).
-The helper runs without administrator rights; installing some prerequisites
-may require them.
+If the prerequisites are installed and the clone is ready, use this quick path.
+Otherwise, begin with [Installation](INSTALLATION.md). The helper runs without
+administrator rights; installing some prerequisites may require them.
 
 From the clone directory, create a ChatGPT identity and sign in:
 
 ```bash
 ./bin/codex-home create-subscription personal
 ./bin/codex-home login personal
+```
+
+Check the intended account and workspace in the browser during sign-in. Then
+check the CLI authentication method and launch a session:
+
+```bash
+./bin/codex-home run personal login status
 ./bin/codex-home run personal
 ```
+
+In the CLI, use `/status` to inspect the active model and session configuration.
+The identity name is a local label; see [verification for CLI and VS Code](docs/commands.md#check-the-selected-identity).
 
 For an API key, follow the [API provider](docs/api-providers.md) or
 [U-M GPT](docs/umgpt.md) guide. Each guide covers access, billing, and a test of
 Codex tool calls with your selected model.
 
-U-M GPT model recommendations are kept in the visible, version-controlled
-file [`config/umgpt-models.toml`](config/umgpt-models.toml). Users can keep
-different local defaults in `~/.codex-homes/umgpt-models.toml`; run
-`codex-home umgpt-defaults` to compare them. Neither file is a model catalog:
-`codex-home models umgpt` and `codex-home models umgpt-low` query the gateway's
-current scoped model lists. The dated
-[model snapshot](docs/umgpt-models-snapshot.md) records one credential's
-observed catalog for review only; it is not used at runtime or an approval
-list.
-
-To use your identity for a project in VS Code:
+After exiting Codex, use your identity for a project in VS Code:
 
 ```bash
 ./bin/codex-home project personal "/path/to/project"
+```
+
+Review the generated `.envrc` and `.vscode/<folder-name>.code-workspace`.
+The `.envrc` contains executable shell code and local paths. Then approve it
+and launch:
+
+```bash
 direnv allow "/path/to/project"
 ./bin/codex-home vscode personal "/path/to/project"
 ```
 
-Review `.envrc` before running `direnv allow`: it contains executable shell
-code and local paths. The helper preserves existing project files and uses
-local Git exclusions for the files it generates. Start a new Codex chat and
-check `/status` to confirm the account and provider.
+The helper preserves existing project files and uses local Git exclusions for
+the files it generates. Start a new Codex chat and [verify the extension's
+account and selected model](docs/commands.md#check-the-selected-identity).
+See [Projects and VS Code](docs/projects-vscode.md) for terminal use and
+existing project configuration.
 
 For right-click access on macOS, run `./bin/install-macos-open-with`, then
 choose **Quick Actions > Open in Codex Project** on a project folder. The

@@ -2,8 +2,10 @@
 
 For a printable reference, [download the two-page cheatsheet](codex-contexts-cheatsheet.pdf).
 
-Prefix each command below with `./bin/codex-home` from the clone directory.
-If its `bin` directory is on `PATH`, use `codex-home` instead.
+Prefix each command in the table with `./bin/codex-home` from the clone directory.
+Examples using bare `codex-home` assume its `bin` directory is on `PATH`,
+through [shell setup](../INSTALLATION.md#3-clone-and-validate) or an approved
+generated project `.envrc`.
 
 | Command | Purpose |
 |---|---|
@@ -71,7 +73,8 @@ exit and restores the previous title when the terminal supports a title stack.
 
 Use `codex-home run` to get this label. Running `codex` directly uses its
 own title settings, even inside a `direnv` project. The helper's context name
-is a local label; check `/status` for the signed-in account and provider.
+is a local label; [verify the selected identity](#check-the-selected-identity)
+before use.
 
 For U-M GPT identities, `codex-home run` also validates the selected model.
 The normal `umgpt` identity accepts GPT and o-series text IDs only and pins
@@ -94,14 +97,39 @@ and [Codex TUI settings](https://learn.chatgpt.com/docs/config-file/config-sampl
 
 ## Check the selected identity
 
+The local identity label does not verify a ChatGPT account or workspace.
+Check the intended account and workspace in the browser during sign-in.
+
+From the clone directory, inspect an identity's saved configuration and the
+CLI authentication method without printing credentials:
+
 ```bash
-./bin/codex-home current
-./bin/codex-home show umgpt
-./bin/codex-home list
+./bin/codex-home show NAME
+./bin/codex-home run NAME login status
+./bin/codex-home run NAME
 ```
 
-Compare the result with the VS Code window title and `/status` in a new Codex
-session. Start a new chat after switching identities.
+Replace `NAME` with the identity you created. In the **CLI**, `/status` shows
+the active model and session configuration. `login status` checks the CLI
+authentication method; it does not establish the intended account or workspace.
+
+In **VS Code**, start a new Codex chat after switching identities. Check the
+extension's account or API-key status in its profile menu and the selected model
+in its model picker. Open a fresh integrated terminal and run:
+
+```bash
+codex-home current
+```
+
+Compare the selected home and configured provider/model with the window label.
+`current` and `show` read local selection/configuration; they are not proof of
+the authenticated account or effective runtime overrides. A missing `auth.json`
+alone does not prove sign-out on a managed computer; check CLI `login status`
+or the extension's profile menu.
+
+See OpenAI's [authentication guide](https://learn.chatgpt.com/docs/auth) and
+[CLI and IDE command reference](https://learn.chatgpt.com/docs/developer-commands)
+for the corresponding checks in each surface.
 
 ## Keep U-M GPT defaults current
 
@@ -149,10 +177,12 @@ compatibility or institutional approval. See the
 
 ## Share personal skills
 
+If you already have skills in `~/.codex/skills`, link them into each additional
+identity:
+
 ```bash
 ./bin/codex-home share-skills-all
 ```
 
-This links personal skills from `~/.codex/skills` into each additional identity.
-It leaves `.system` alone and skips existing skills with the same name. Rerun
+The command leaves `.system` alone and skips existing skills with the same name. Rerun
 it after adding a skill. See [Sharing skills](skills.md) for details.

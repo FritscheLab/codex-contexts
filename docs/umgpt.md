@@ -8,6 +8,10 @@ helper uses the U-M gateway at:
 https://api.toolkit.umgpt.umich.edu/v1
 ```
 
+After [installing prerequisites and cloning the repository](../INSTALLATION.md#1-install-prerequisites)
+(Installation steps 1–3), run `./bin/codex-home` examples from the clone
+directory; bare `codex-home` assumes it is on PATH.
+
 Two deliberately separate identities reduce accidental model switching:
 
 | Identity | Model scope | Intended use |
@@ -44,11 +48,11 @@ Toolkit's approval or protections.
 ## Check data permissions first
 
 The [U-M ITS AI Services entry in the Sensitive Data Guide](https://safecomputing.umich.edu/dataguide/service/75)
-(which may require U-M sign-in) lists permitted data types. It currently has a
-model-specific restriction for protected health information (PHI): all U-M GPT
-Claude models and Llama 4 Maverick are not authorized for PHI. The
-[U-M GPT model descriptions](https://its.umich.edu/computing/ai/gpt-in-depth#models)
-also describe model-specific restrictions.
+(which may require U-M sign-in) is the place to check current data permissions.
+The public [U-M GPT model descriptions](https://its.umich.edu/computing/ai/gpt-in-depth#models)
+list Claude Sonnet 5, Claude Opus 5, and Llama 4 Maverick as not authorized for
+protected health information (PHI). This does not establish approval for other
+models.
 
 Rules and available models can change. Recheck the current guide and your
 unit's requirements before each new use case. The
@@ -236,6 +240,11 @@ Use `low-sensitivity` instead only for an older identity intentionally using a
 broader text model. An unclassified legacy U-M identity is blocked from helper
 launches until it is assigned a scope.
 
+New identities also use a `U-M GPT Toolkit` provider display name, including
+the identity name and a low-sensitivity warning where applicable. To update
+an existing identity's configured label, follow
+[Provider display names](api-providers.md#provider-display-names).
+
 ## 5. Select a model for one session
 
 Pass an exact ID without changing the saved default:
@@ -251,9 +260,9 @@ models and prints a prominent warning at launch.
 
 Codex's `/model` selector may not contain every model exposed by the custom
 U-M gateway. `probe-models` and `models` do not alter that selector. Use the
-exact ID with `-m`, or update the default as shown above. A custom
-`model_catalog_json` is intentionally not installed: Codex treats it as a
-replacement catalog, which would create another static list to maintain. See
+exact ID with `-m`, or update the default as shown above. The helper does not
+install a custom `model_catalog_json`, which would add another static catalog
+to maintain. See
 the [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference#model_catalog_json).
 
 ## 6. Validate compatibility
@@ -272,19 +281,27 @@ Then run the tool-call smoke test in the
 [API provider validation guide](api-providers.md#validate-compatibility) with
 non-sensitive test content. A successful model listing or plain-text response
 does not establish full Codex compatibility.
+Then [check the selected identity](commands.md#check-the-selected-identity)
+before assigning it to a project.
 
 ## 7. Assign an identity to a project
 
 ```bash
 ./bin/codex-home project umgpt "/path/to/project"
+```
+
+Review the generated `.envrc` and `.vscode/<folder-name>.code-workspace` before
+approval. Then run:
+
+```bash
 direnv allow "/path/to/project"
 ./bin/codex-home vscode umgpt "/path/to/project"
 ```
 
-Use `umgpt-low` in all three places for the broader identity. The normal
-identity uses a navy status bar; the low-sensitivity identity uses red. In a
-new integrated terminal, confirm the identity with `codex-home current`, then
-check the provider and selected model with `/status`.
+Use `umgpt-low` in both helper commands for the broader identity. The normal
+identity uses a navy status bar; the low-sensitivity identity uses red. Start
+a new Codex chat and follow the [CLI or VS Code verification steps](commands.md#check-the-selected-identity)
+to check the selected home, provider configuration, authentication, and model.
 
 ## Guardrail boundaries
 
@@ -296,8 +313,9 @@ top-level `.codex/config.toml` model setting.
 This is an accidental-misuse guardrail, not a security boundary. Running
 `codex` directly, manually editing identity files, changing unrecognized Codex
 configuration paths, or continuing an already-open session can bypass the
-helper. Always start a new session after changing identities and confirm
-`/status` before providing data.
+helper. Always start a new session after changing identities and
+[verify the selected identity](commands.md#check-the-selected-identity) before
+providing data.
 
 ## Multiple U-M keys
 

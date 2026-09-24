@@ -25,9 +25,17 @@ source "$LAUNCH_TEST_TOOL"
 
 fail() { printf 'Project launch test failure: %s\n' "$*" >&2; exit 1; }
 quiet_check() {
-  if "$@" 2>"$LAUNCH_TEST_ROOT/error"; then return 0; fi
-  cat "$LAUNCH_TEST_ROOT/error" >&2
-  fail "command failed: $1"
+  local command_status
+  if "$@" >"$LAUNCH_TEST_ROOT/output" 2>&1; then
+    return 0
+  else
+    command_status=$?
+  fi
+  printf 'Project launch test failure: command failed (exit %s):' "$command_status" >&2
+  printf ' %q' "$@" >&2
+  printf '\n' >&2
+  cat "$LAUNCH_TEST_ROOT/output" >&2
+  exit 1
 }
 expect_rejection() {
   local diagnostic="$1"
@@ -74,6 +82,36 @@ grep -Fxq -- "$project/.vscode/project \$one [x].code-workspace" "$CODEX_LAUNCH_
 [[ "$(head -n 1 "$CODEX_LAUNCH_TEST_DETAILS")" == "$project" ]] || fail 'wrong editor working directory'
 expect_rejection "project selects 'launch-unit', not 'launch-other'" \
   "$LAUNCH_TEST_TOOL" vscode launch-other "$project"
+
+# Environment errors stay visible even when the caller silences direnv logs.
+# Both public launch commands must preserve failure status and skip the editor.
+write_fixture launch-unit "$unit_home"
+cat >>"$project/.envrc" <<'EOF'
+printf 'fixture setup output\n'
+log_error 'fixture required-tool is missing'
+exit 42
+EOF
+approve_fixture
+for launch_command in vscode-project vscode; do
+  launch_args=("$launch_command")
+  [[ "$launch_command" != vscode ]] || launch_args+=(launch-unit)
+  launch_args+=("$project")
+  rm -f "$CODEX_LAUNCH_TEST_ARGS"
+  launch_status=0
+  DIRENV_LOG_FORMAT='' "$LAUNCH_TEST_TOOL" "${launch_args[@]}" \
+    >"$LAUNCH_TEST_ROOT/output" 2>"$LAUNCH_TEST_ROOT/error" || launch_status=$?
+  # direnv reports a failed .envrc as status 1, preserving its original status
+  # in the diagnostic. The launcher must return direnv's failure unchanged.
+  [[ "$launch_status" -eq 1 ]] || fail "$launch_command changed direnv exit status to $launch_status"
+  [[ ! -e "$CODEX_LAUNCH_TEST_ARGS" ]] || fail 'CLI ran after .envrc failed'
+  for diagnostic in 'fixture setup output' 'fixture required-tool is missing' \
+    'exit status 42' "failed to launch project: $project (exit 1)" "verify the project's .envrc"; do
+    grep -Fq -- "$diagnostic" "$LAUNCH_TEST_ROOT/error" || {
+      cat "$LAUNCH_TEST_ROOT/error" >&2
+      fail "missing diagnostic: $diagnostic"
+    }
+  done
+done
 
 # Equivalent physical homes are accepted even when the .envrc uses a symlink.
 home_alias="$LAUNCH_TEST_ROOT/home alias"

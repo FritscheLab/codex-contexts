@@ -84,7 +84,7 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 
 export HOME="$TEST_ROOT/home"
 export DIRENV_CONFIG="$TEST_ROOT/direnv-config"
-export DIRENV_LOG_FORMAT=""
+export DIRENV_LOG_FORMAT="direnv: %s"
 export XDG_DATA_HOME="$TEST_ROOT/xdg-data"
 export CODEX_HOMES_ROOT="$TEST_ROOT/codex-homes"
 export CODEX_MACOS_SKIP_REGISTER=1

@@ -1,7 +1,9 @@
 # Sharing skills across Codex homes
 
-Keep one copy of your personal skills and link them into each identity. This
-lets you update a skill once and use the same version everywhere.
+If you already keep personal skills in `~/.codex/skills`, the helper can link
+them into each additional identity's `$CODEX_HOME/skills`. This lets you
+update the source once for every linked identity. The source directory must
+already exist; this command does not install or migrate skills.
 
 The default source directory is:
 
@@ -59,7 +61,7 @@ on without replacing it. To resolve a conflict:
 3. To use the shared version, move the local directory to a backup
    outside `skills`, then rerun `share-skills NAME`.
 
-## What is not shared
+## What this command does not share
 
 - `.system` stays managed per Codex home.
 - Authentication, sessions, logs, config, and API keys stay in each identity's
@@ -69,6 +71,14 @@ on without replacing it. To resolve a conflict:
 
 To share a new skill, install or move it into the source directory, then rerun
 `share-skills-all`.
+
+## Skill discovery boundaries
+
+These links are only this helper's sharing workflow. Codex also discovers
+skills in repository `.agents/skills`, global user `$HOME/.agents/skills`,
+administrator `/etc/codex/skills`, and bundled locations. Changing `CODEX_HOME`
+is not a complete skill isolation boundary. The helper does not manage or
+migrate `$HOME/.agents/skills`. See [OpenAI's current skill-discovery guide](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
 
 ## Trust and updates
 

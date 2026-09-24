@@ -25,7 +25,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes direnv expect jq
+          sudo apt-get install --yes expect jq
+          # Ubuntu's direnv 2.32.1 expands shell metacharacters in project paths.
+          # Pin a release containing the upstream path-escaping fix (2.32.2+).
+          curl --fail --location --silent --show-error \
+            https://github.com/direnv/direnv/releases/download/v2.37.1/direnv.linux-amd64 \
+            --output "$RUNNER_TEMP/direnv"
+          printf '%s  %s\n' \
+            1f1b93dd6f38523fde26dfac96151ef9d31a374e3005cd3345fb93555ae0c9b5 \
+            "$RUNNER_TEMP/direnv" | sha256sum --check
+          sudo install -m 0755 "$RUNNER_TEMP/direnv" /usr/local/bin/direnv
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'

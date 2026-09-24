@@ -127,18 +127,18 @@ left = section("1  Get ready", [
     ("text", f"Follow {link('Installation', 'INSTALLATION.md')} to install prerequisites "
      "and clone the repository. Then, in the clone:"),
     ("code", 'cd "$HOME/Developer/codex-contexts"\n./tests/test.sh\nexport PATH="$PWD/bin:$PATH"'),
-    ("text", "For future zsh shells, put this line in <b>~/.zshrc</b>:<br/>"
-     "<b>export PATH=~/Developer/codex-contexts/bin:$PATH</b><br/>"
-     "Open a new terminal. Adjust the path if your clone is elsewhere, or use "
-     "<b>./bin/codex-home</b> from the clone."),
+    ("text", "Adjust the clone path as needed. The export sets PATH for this shell; "
+     f"see {link('Installation', 'INSTALLATION.md#3-clone-and-validate')} to make it persistent, "
+     "or use <b>./bin/codex-home</b> from the clone."),
     ("text", "<b>Admin rights:</b> none for the helper. Initial Homebrew installation "
      "or Linux <b>apt</b> may need an administrator. Run the helper without sudo."),
 ], MARGIN, 638)
 left = section("2  Add ChatGPT accounts", [
-    ("code", "codex-home create-subscription personal\ncodex-home login personal\n\n"
-     "codex-home create-subscription work\ncodex-home login work"),
+    ("code", "codex-home create-subscription personal\ncodex-home login personal\n"
+     "codex-home create-subscription work\ncodex-home login work\n"
+     "codex-home run work login status"),
     ("text", "Check the account and workspace in each browser login. "
-     "<b>personal</b> and <b>work</b> are labels, not verified plan names."),
+     "<b>login status</b> checks the CLI auth method; identity names are local labels."),
 ], MARGIN, left)
 section("Or use the U-M GPT Toolkit", [
     ("code", "codex-home create-umgpt\n"
@@ -152,25 +152,25 @@ section("Or use the U-M GPT Toolkit", [
 ], MARGIN, left)
 
 right = section("3  Select an identity for a project", [
-    ("text", "Replace the path below with your project. Use an identity you have "
-     "already created, such as <b>work</b>."),
+    ("text", "Use your project path and an existing identity, such as <b>work</b>."),
     ("code", 'P="/path/to/project"\ncodex-home project work "$P"'),
-    ("text", "Read the generated <b>.envrc</b>, then approve it and open VS Code:"),
+    ("text", "Read the generated <b>.envrc</b> and workspace, then approve and open VS Code:"),
     ("code", 'direnv allow "$P"\ncodex-home vscode work "$P"'),
-    ("text", "Check <b>[CODEX: WORK]</b> in the window title. Start a new chat "
-     "and use <b>/status</b> to confirm the account and provider."),
+    ("text", "Title: <b>[CODEX: WORK]</b>. Start a new chat. Check the extension's "
+     "profile menu for sign-in and its model picker. "
+     f"{link('Verification', 'docs/commands.md#check-the-selected-identity')}."),
 ], RIGHT, 638)
 right = section("Or add a custom API provider", [
     ("code", "codex-home create-api lab-api \\\n  https://api.example.org/v1 \\\n  MODEL_ID LAB_API_KEY\ncodex-home set-key lab-api"),
-    ("text", "Replace the example URL and MODEL_ID. The provider must support "
-     "bearer keys, the Responses API, streaming, and Codex tool calls."),
-    ("text", f"Follow {link('API providers', 'docs/api-providers.md')} for a tool-call "
-     "test, Azure setup, and billing details. A model list alone is not a compatibility test."),
+    ("text", "Use your provider's URL and MODEL_ID. It must support bearer keys, "
+     "streaming Responses, and Codex tool calls."),
+    ("text", f"{link('API providers', 'docs/api-providers.md')}: tool-call test, Azure, "
+     "and billing. A model list alone does not prove compatibility."),
 ], RIGHT, right)
 section("Terminal only", [
     ("code", 'cd "/path/to/project"\ncodex-home run work'),
-    ("text", "The tab/window title shows <b>[CODEX: WORK]</b>. "
-     "Check the account with <b>/status</b>. No direnv or VS Code needed."),
+    ("text", "CLI <b>/status</b> shows model/session configuration. "
+     "<b>[CODEX: WORK]</b> stays in the title. No direnv or VS Code needed."),
 ], RIGHT, right)
 
 footer(1, "<b>Keep it local.</b> Credentials belong in the identity home, outside Git and "
@@ -187,23 +187,26 @@ paragraph(
 )
 
 left = section("Open and check", [
-    ("code", 'cd "$P"\ncodex-home run\ncodex-home vscode-project'),
-    ("code", "codex-home current\ncodex-home show NAME\ncodex-home list"),
-    ("text", "Confirm the account with <b>/status</b> in Codex."),
+    ("code", 'cd "$P"\ncodex-home run\ncodex-home vscode-project\n'
+     'codex-home current\ncodex-home show NAME\ncodex-home list'),
+    ("text", "Local config: <b>current/show</b>. CLI model/session: <b>/status</b>. "
+     "IDE: profile menu + model picker. "
+     f"{link('Verification', 'docs/commands.md#check-the-selected-identity')}."),
 ], MARGIN, 638)
 left = section("Change or remove a project context", [
-    ("text", "Close the project's VS Code window first. To select another identity:"),
-    ("code", 'codex-home project-change NAME "$P"\ncodex-home project-review "$P"\ndirenv allow "$P"\ncodex-home vscode-project "$P"'),
-    ("text", "Read and close the review window before approval. "
-     "Start a new Codex chat."),
+    ("text", "Close the project's VS Code window first:"),
+    ("code", 'codex-home project-change NAME "$P"\ncodex-home project-review "$P"'),
+    ("text", "Read and close the review window, then approve and open:"),
+    ("code", 'direnv allow "$P"\ncodex-home vscode-project "$P"'),
     ("code", 'codex-home project-reset "$P"'),
     ("text", "Reset removes untouched generated files and local Git exclusions. "
      "It keeps identity homes and credentials."),
 ], MARGIN, left)
-section("Share personal skills", [
-    ("code", "codex-home share-skills-all\ncodex-home share-skills NAME"),
-    ("text", "Links <b>~/.codex/skills</b> and skips conflicts. "
-     "Rerun after adding skills; review shared updates."),
+section("Optional: share personal skills", [
+    ("code", "codex-home share-skills-all"),
+    ("small", "Requires existing <b>~/.codex/skills</b>; links skills and skips conflicts. "
+     "Rerun after additions. Codex also discovers skills outside each home. "
+     f"{link('Guide', 'docs/skills.md')}."),
 ], MARGIN, left)
 
 right = section("Provider checks and API keys", [

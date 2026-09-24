@@ -78,6 +78,17 @@ command in PATH**, or set:
 export CODEX_VSCODE_CLI="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 ```
 
+## `failed to launch project`
+
+The launcher preserves direnv or editor failure status and diagnostics, then
+prints the project path. Read the preceding diagnostic to identify an `.envrc` error,
+missing command, or VS Code CLI failure. Commands used by `.envrc` must be
+available in its noninteractive environment.
+
+Project launches require direnv 2.32.2 or newer. Earlier versions incorrectly
+expand shell characters such as `$` in project paths. Check `direnv version`
+and [upgrade direnv](../INSTALLATION.md#1-install-prerequisites) if needed.
+
 ## `direnv did not load a Codex identity`
 
 The launcher cannot obtain both `CODEX_IDENTITY` and `CODEX_HOME` from the
@@ -190,7 +201,8 @@ only that home:
 ./bin/codex-home login work
 ```
 
-Then use `/status` in a CLI session launched with `codex-home run work`.
+Check the intended account and workspace in the browser during sign-in, then
+follow the [CLI or VS Code verification steps](commands.md#check-the-selected-identity).
 
 ## A skill was skipped
 
@@ -202,8 +214,9 @@ or move it to a backup and rerun the command. See [Sharing skills](skills.md).
 
 Install the named prerequisite and rerun the suite. The default tests require
 `bash`, `direnv`, `expect`, and `jq`; see [Installation](../INSTALLATION.md).
-The production helper also uses `curl` for model discovery and Codex for login,
-diagnostics, and sessions.
+The production helper also uses `curl` 7.76.0 or newer for model discovery and
+Codex for login, diagnostics, and sessions. If curl rejects `--fail-with-body`,
+check `curl --version` and update it.
 
 ## Generated project paths no longer exist
 

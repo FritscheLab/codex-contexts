@@ -4,6 +4,10 @@ Use a separate identity for each API provider or key. The helper can configure
 Responses-compatible APIs, direct Azure endpoints, and the U-M GPT gateway.
 Other providers supported by Codex need manual setup.
 
+After [installing prerequisites and cloning the repository](../INSTALLATION.md#1-install-prerequisites)
+(Installation steps 1–3), run `./bin/codex-home` examples from the clone
+directory; bare `codex-home` assumes it is on PATH.
+
 ## Support matrix
 
 | Provider | Codex support | Managed by this helper | Setup |
@@ -134,6 +138,30 @@ guardrails; they do not certify that any model, Codex workflow, or data type is
 institutionally approved. See [U-M GPT](umgpt.md) for setup and governance
 details.
 
+### Provider display names
+
+New U-M identities use `U-M GPT Toolkit (umgpt)` or
+`U-M GPT Toolkit (umgpt-low; LOW-SENSITIVITY DATA ONLY)` as the provider
+display name. Custom identity names replace `umgpt` or `umgpt-low` in those
+labels, so multiple keys remain distinguishable.
+
+For an existing identity, edit only the `name` value in its provider table in
+`$CODEX_HOME/config.toml`. For example, in
+`~/.codex-homes/umgpt/config.toml`:
+
+```toml
+[model_providers.umgpt]
+name = "U-M GPT Toolkit (umgpt)"
+# Keep the existing base_url, env_key, and wire_api entries here.
+```
+
+The [`name` field is Codex's provider display name](https://learn.chatgpt.com/docs/config-file/config-reference).
+Keep `model_provider = "umgpt"` and `[model_providers.umgpt]` unchanged:
+the helper uses the identity name as the provider ID and checks it at launch.
+Restart Codex to use the updated configuration. Display varies by client and
+version; CLI `/status` may still show the provider ID. Existing configuration
+files are not rewritten automatically when you update this repository.
+
 ## Generic bearer-token gateway
 
 ```bash
@@ -166,8 +194,9 @@ Create a home per key. The environment-variable names may be distinct:
 ./bin/codex-home set-key lab-b
 ```
 
-You can also reuse one variable name: only the selected identity's `.env` is
-loaded. Different names can make debugging outside `direnv` easier.
+You can also reuse one variable name: the helper loads the selected identity's
+`.env`. It does not clear unrelated variables or credentials inherited from
+your shell. Different names can make debugging outside `direnv` easier.
 
 ## OpenAI Platform API key
 
@@ -301,22 +330,27 @@ create a small marker file; replace
 `research-api` and the repository path as needed:
 
 ```bash
-CODEX_CONTEXTS="$HOME/Developer/codex-contexts"
-SMOKE_DIR="$(mktemp -d)"
-git -C "$SMOKE_DIR" init --quiet
 (
+  set -eu
+  CODEX_CONTEXTS="$HOME/Developer/codex-contexts"
+  SMOKE_DIR="$(mktemp -d)"
+  printf 'Smoke-test directory: %s\n' "$SMOKE_DIR"
+  git -C "$SMOKE_DIR" init --quiet
   cd "$SMOKE_DIR"
   "$CODEX_CONTEXTS/bin/codex-home" run research-api exec \
     --ephemeral \
     --sandbox workspace-write \
     "Create codex-smoke-test.txt containing exactly OK, using a tool."
+  test "$(cat codex-smoke-test.txt)" = "OK"
+  printf 'Tool-call smoke test passed: %s\n' "$SMOKE_DIR"
 )
-test "$(cat "$SMOKE_DIR/codex-smoke-test.txt")" = "OK"
-printf 'Tool-call smoke test passed: %s\n' "$SMOKE_DIR"
 ```
 
 This request may incur provider charges. Keep research data out of the test.
 Inspect the temporary directory, then delete it when you are done.
+
+After validation, [check the selected identity](commands.md#check-the-selected-identity)
+and [assign it to a project](projects-vscode.md).
 
 References:
 

@@ -56,10 +56,11 @@ The helper runs on macOS and Linux with Bash 3.2 or newer.
 
 | Use | Requirements |
 |---|---|
-| Run Codex from the terminal | Git, Codex CLI, `curl`, and `jq` |
-| Select an identity by project | Also install `direnv` |
+| Run Codex from the terminal | Git, Codex CLI, and `jq` |
+| Discover API models or generate a model snapshot | Also install `curl` 7.76.0 or newer |
+| Select an identity by project | Also install `direnv` 2.32.2 or newer |
 | Open labeled VS Code windows | Also install VS Code and the Codex extension |
-| Run the tests | Also install `direnv` and `expect` |
+| Run the tests | Also install `direnv` 2.32.2 or newer and `expect` |
 | Open projects from Finder | macOS only |
 
 ### macOS
@@ -70,8 +71,11 @@ With [Homebrew](https://brew.sh/):
 brew install git direnv jq
 ```
 
-macOS includes `curl` and normally includes `expect`. If `expect -v` fails, run
-`brew install expect`. Install or update the Codex CLI by following the
+macOS includes `curl`; check `curl --version` and use `brew install curl` if it
+is older than 7.76.0 and you need model discovery. Follow Homebrew's PATH
+instructions so `curl --version` reports the newer version. macOS normally
+includes `expect`; if `expect -v` fails, run `brew install expect`.
+Install or update the Codex CLI by following the
 [official Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli). If you
 plan to use VS Code, install VS Code and follow the
 [official Codex IDE guide](https://learn.chatgpt.com/docs/codex/ide).
@@ -82,6 +86,13 @@ plan to use VS Code, install VS Code and follow the
 sudo apt update
 sudo apt install bash curl direnv expect git jq
 ```
+
+Check `curl --version` (7.76.0 or newer for model discovery) and
+`direnv version`. If `direnv` is older than 2.32.2, upgrade using the
+[official installation guide](https://direnv.net/docs/installation.html).
+Earlier releases incorrectly expand shell characters such as `$` in project
+paths; the launcher requires the upstream path-escaping fix.
+See the [direnv 2.32.2 release notes](https://github.com/direnv/direnv/releases/tag/v2.32.2).
 
 Then install or update the Codex CLI using the
 [official Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli). Install
@@ -139,8 +150,10 @@ creates disposable identities in a temporary directory and uses mock commands;
 it does not need your credentials or contact a provider. If the final pass line
 does not appear, see [Troubleshooting](docs/troubleshooting.md).
 
-The examples in this repository use `./bin/codex-home`, so adding the helper to
-`PATH` is optional. To run `codex-home` from any directory in future terminals,
+Run examples beginning with `./bin/codex-home` from the clone directory.
+Examples using bare `codex-home` require its `bin` directory on `PATH`, either
+from the shell setting below or from an approved generated project `.envrc`.
+To run `codex-home` from any directory in future terminals,
 add this line to `~/.zshrc` for zsh or `~/.bashrc` for Bash:
 
 ```bash
@@ -160,10 +173,10 @@ Choose the guide for the identity you need:
 - [Responses-compatible API providers and Azure](docs/api-providers.md)
 - [Optional U-M GPT setup](docs/umgpt.md)
 
-From the clone directory, run `./bin/codex-home run NAME`, replacing `NAME`
-with the identity you created. To select an identity automatically for a
-project or open a labeled VS Code window,
-[assign the identity to a project](docs/projects-vscode.md). On macOS, you can
+After creating the identity, [verify its configuration and sign-in](docs/commands.md#check-the-selected-identity).
+Then [assign it to a project](docs/projects-vscode.md): generate the files,
+review them, approve `.envrc`, and launch. This selects the identity automatically
+for that project or opens a labeled VS Code window. On macOS, you can
 also install the optional [Finder Quick Action](docs/macos-open-with.md):
 
 ```bash
