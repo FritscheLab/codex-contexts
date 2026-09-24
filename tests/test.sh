@@ -86,6 +86,7 @@ export DIRENV_CONFIG="$TEST_ROOT/direnv-config"
 export DIRENV_LOG_FORMAT=""
 export XDG_DATA_HOME="$TEST_ROOT/xdg-data"
 export CODEX_HOMES_ROOT="$TEST_ROOT/codex-homes"
+export CODEX_MACOS_SKIP_REGISTER=1
 # Do not let the caller's direnv state restore its PATH over our mock commands.
 unset DIRENV_DIFF DIRENV_DIR DIRENV_FILE DIRENV_WATCHES
 mkdir -p "$HOME" "$DIRENV_CONFIG" "$TEST_ROOT/project" "$TEST_ROOT/offline-bin"

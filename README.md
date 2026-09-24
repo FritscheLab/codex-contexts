@@ -70,9 +70,10 @@ terminal, start the selected context with `codex-home run`.
 
 On macOS, the helper opens a named editor copy: hover over its running Dock
 icon to read `VS Code - NAME`. Projects using the same identity reuse its
-instance. After quitting, start it through `codex-home` or Finder's **Quick
-Actions > Open in Codex Project**; do not pin or directly open the generated
-editor copy, which needs the helper's launch environment. See
+instance. For configured folders, Finder's **Open With > VS Code - NAME**
+entry routes through that identity. You can also use `codex-home` or Finder's
+**Quick Actions > Open in Codex Project**; do not pin or directly open the
+generated editor copy, which needs the helper's launch environment. See
 [macOS Dock names](docs/projects-vscode.md#macos-dock-names).
 
 The CLI launcher keeps **[CODEX: NAME]** in the terminal tab/window title.

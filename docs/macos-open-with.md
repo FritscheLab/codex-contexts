@@ -32,9 +32,15 @@ credentials.
 The bundled helper opens a named copy of VS Code for each identity, such as
 `VS Code - work` or `VS Code - default`. Hover over its running Dock icon to
 read the identity, or click it to focus the editor. Projects using a running
-identity are sent to that instance. After quitting, open a project through
-this Quick Action again; do not pin or directly relaunch the generated editor
-copy because it needs the helper's environment and launch arguments. See
+identity are sent to that instance. The installer also creates identity-specific
+Finder handlers named `VS Code - NAME`. Choose **Open With > VS Code - NAME** to
+open a folder through the matching identity. The folder must have an approved
+`.envrc` selecting that identity and its generated workspace. If it selects a
+different identity, the handler reports the mismatch instead of opening the
+wrong account. Use **Codex Project** when you need to set up or change a folder
+context. Do not pin or directly relaunch the generated editor copies under
+`~/.codex-homes`; those copies need the helper's environment and launch
+arguments. See
 [macOS Dock names](projects-vscode.md#macos-dock-names) for copy refresh and
 the original-editor opt-out.
 
@@ -69,6 +75,10 @@ You can also select a folder and use **Finder > Services > Open in Codex
 Project**. If **Open With > Codex Project** is available, it opens the same app;
 folder context menus do not consistently offer that route. Do not choose
 **Change All**; Finder should remain the normal default handler for folders.
+
+For an already configured project, **Open With > VS Code - NAME** routes the
+folder through the matching identity. The handler passes it to `codex-home`,
+which opens the project workspace and uses the named Dock instance.
 
 When the folder has no `.envrc`, the app goes straight to identity selection.
 When it is already configured, the menu offers:
@@ -172,10 +182,11 @@ remain readable, but `codex-home` will no longer be supplied by that path;
 reset the folder or regenerate it with the helper from a stable repository
 clone.
 
-The uninstaller leaves identity homes, VS Code user data, and named editor
-copies under `vscode-editor` intact. After uninstalling the Finder integration,
-use the repository's `codex-home` to open projects with their approved context;
-do not open a named editor copy directly.
+The uninstaller moves the generated identity-specific Finder handlers to Trash.
+It leaves identity homes, VS Code user data, and named editor copies under
+`vscode-editor` intact. After uninstalling the Finder integration, use the
+repository's `codex-home` to open projects with their approved context; do not
+open a named editor copy directly.
 
 ## Maintenance and recovery
 
@@ -231,6 +242,6 @@ For a generated project that uses `codex-context.code-workspace`, follow
 Apple documents Automator Quick Actions as available from Finder and Services;
 see [Create a Quick Action workflow](https://support.apple.com/guide/automator/aut7cac58839/mac)
 and [Perform quick actions in Finder](https://support.apple.com/guide/mac-help/mchl97ff9142/mac).
-The app also declares folder support using
+Codex Project and the identity-specific VS Code handlers declare folder support using
 [LSItemContentTypes](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundledocumenttypes/lsitemcontenttypes)
 for systems and dialogs that offer **Open With**.

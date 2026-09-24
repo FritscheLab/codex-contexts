@@ -181,8 +181,9 @@ On macOS, helper-launched VS Code instances have Dock hover names such as
 `VS Code - work` and `VS Code - default`. They keep the standard VS Code icon.
 See [macOS Dock names](docs/projects-vscode.md#macos-dock-names) for reopening,
 the restriction on directly launching or pinning editor copies, and the
-original-editor opt-out. After quitting, reopen projects through the Finder
-Quick Action or `codex-home`.
+original-editor opt-out. After quitting, reopen a configured project through
+its matching **Open With > VS Code - NAME** entry, the Finder Quick Action, or
+`codex-home`.
 
 After project setup, enter the folder and run `codex-home run`. It uses the
 context selected by `direnv`; you do not need to type the identity name each

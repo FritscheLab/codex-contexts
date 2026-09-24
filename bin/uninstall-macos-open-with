@@ -9,6 +9,7 @@ SERVICES_DIR="${CODEX_MACOS_SERVICES_DIR:-$HOME/Library/Services}"
 WORKFLOW_PATH="$SERVICES_DIR/Open in Codex Project.workflow"
 WORKFLOW_BACKUP_DIR="$SERVICES_DIR/.codex-project-backups"
 TRASH_DIR="${CODEX_MACOS_TRASH_DIR:-$HOME/.Trash}"
+VSCODE_OPEN_WITH_DIR="$HOME/Applications"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 
 die() {
@@ -23,7 +24,22 @@ if [[ -e "$WORKFLOW_PATH" ]]; then
   [[ "$(/usr/bin/plutil -extract CodexContextsManagedWorkflow raw "$WORKFLOW_PATH/Contents/Info.plist" 2>/dev/null)" == 'codex-contexts-quick-action-v1' ]] ||
     die "refusing to remove an unrelated Quick Action: $WORKFLOW_PATH"
 fi
-if [[ ! -e "$APP_PATH" && ! -e "$WORKFLOW_PATH" ]]; then
+if [[ -d "$VSCODE_OPEN_WITH_DIR" ]]; then
+  while IFS= read -r -d '' vscode_handler; do
+    [[ ! -L "$vscode_handler" ]] || continue
+    marker="$vscode_handler/Contents/Resources/codex-contexts-open-with"
+    [[ -f "$marker" && "$(sed -n '1p' "$marker")" == 'codex-contexts-vscode-open-with-v1' ]] || continue
+    if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+      "$LSREGISTER" -u "$vscode_handler" >/dev/null 2>&1 || true
+    fi
+    mkdir -p "$TRASH_DIR"
+    handler_name="$(basename "$vscode_handler" .app)"
+    mv "$vscode_handler" "$TRASH_DIR/$handler_name.$(date +%Y%m%d-%H%M%S).$$.app"
+  done < <(find "$VSCODE_OPEN_WITH_DIR" -maxdepth 1 -type d -name 'VS Code - *.app' -print0)
+fi
+if [[ ! -e "$APP_PATH" && ! -e "$WORKFLOW_PATH" ]] && \
+  { [[ ! -d "$VSCODE_OPEN_WITH_DIR" ]] ||
+    ! find "$VSCODE_OPEN_WITH_DIR" -maxdepth 1 -type d -name 'VS Code - *.app' -print -quit | grep -q .; }; then
   printf 'Codex Project and its Quick Action are not installed at the selected locations.\n'
   exit 0
 fi
@@ -48,7 +64,7 @@ if [[ -e "$WORKFLOW_PATH" ]]; then
     /System/Library/CoreServices/pbs -update || printf 'Warning: reopen Finder to refresh Quick Actions.\n' >&2
   fi
 fi
-printf 'Project files, identity homes, credentials, named VS Code copies, and dependencies are unchanged.\n'
+printf 'Project files, identity homes, credentials, named VS Code editor copies, and dependencies are unchanged.\n'
 
 if [[ -d "$BACKUP_DIR" ]]; then
   printf 'Installer backups remain under %s; inspect them before removing them.\n' "$BACKUP_DIR"

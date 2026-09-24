@@ -22,6 +22,7 @@ command -v osacompile >/dev/null 2>&1 || die "osacompile is required"
 [[ -x /usr/bin/codesign ]] || die "Apple's codesign tool was not found at /usr/bin/codesign"
 [[ -x "$PLIST_BUDDY" ]] || die "PlistBuddy was not found at $PLIST_BUDDY"
 [[ -f "$TOOL_ROOT/macos/CodexProject.applescript" ]] || die "missing AppleScript source"
+[[ -f "$TOOL_ROOT/macos/VSCodeIdentity.applescript" ]] || die "missing VS Code Finder handler source"
 [[ -x "$TOOL_ROOT/bin/codex-home" ]] || die "missing executable bin/codex-home"
 [[ -f "$TOOL_ROOT/config/umgpt-models.toml" ]] || die "missing U-M GPT model defaults"
 [[ -f "$TOOL_ROOT/macos/OpenInCodexProject.workflow/Contents/Resources/document.wflow" ]] || die "missing Quick Action template"
@@ -46,6 +47,7 @@ BUILT_WORKFLOW="$BUILD_DIR/$WORKFLOW_NAME"
 
 osacompile -o "$BUILT_APP" "$TOOL_ROOT/macos/CodexProject.applescript"
 cp "$TOOL_ROOT/bin/codex-home" "$BUILT_APP/Contents/Resources/codex-home"
+cp "$TOOL_ROOT/macos/VSCodeIdentity.applescript" "$BUILT_APP/Contents/Resources/VSCodeIdentity.applescript"
 mkdir -p "$BUILT_APP/Contents/config"
 cp "$TOOL_ROOT/config/umgpt-models.toml" "$BUILT_APP/Contents/config/umgpt-models.toml"
 chmod 700 "$BUILT_APP/Contents/Resources/codex-home"
@@ -135,6 +137,13 @@ if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
   if ! "$LSREGISTER" -f "$APP_PATH"; then
     printf 'Warning: Launch Services did not register the app immediately. Finder may discover it after login.\n' >&2
   fi
+fi
+if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" ]]; then
+  while IFS= read -r identity_name; do
+    [[ -n "$identity_name" ]] || continue
+    "$APP_PATH/Contents/Resources/codex-home" vscode-open-with "$identity_name" >/dev/null ||
+      die "could not register the Finder entry for identity '$identity_name'"
+  done < <("$APP_PATH/Contents/Resources/codex-home" list --names)
 fi
 if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x /System/Library/CoreServices/pbs ]]; then
   # Refresh Finder's Quick Actions registration.
