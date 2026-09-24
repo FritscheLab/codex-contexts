@@ -938,6 +938,7 @@ review_snapshot_path="$(tail -n 1 "$TEST_ROOT/code-review-args")"
   fail "project-review left its temporary snapshot behind"
 
 bash "$ROOT/tests/identity-config.sh"
+bash "$ROOT/tests/model-catalog.sh"
 bash "$ROOT/tests/project-files.sh"
 bash "$ROOT/tests/project-launch.sh"
 

@@ -53,6 +53,7 @@ login or API key and keep identity homes private on your computer.
 | Provider URL/model | `$CODEX_HOME/config.toml` | Keep private by default |
 | Recommended U-M GPT model defaults | `config/umgpt-models.toml` in this repository | Yes; model IDs only, no credentials |
 | User's U-M GPT model defaults | `$CODEX_HOMES_ROOT/umgpt-models.toml` | Keep local; model IDs only, no credentials |
+| Generated U-M GPT picker catalog | `<identity-home>/model-catalog.json` | Keep local; gateway model IDs and Codex metadata, no credentials |
 | Project identity selection | `<project>/.envrc` | Review; credential-free when generated, but executable and machine-specific |
 | VS Code visual label | `<project>/.vscode/<folder-name>.code-workspace` | Review; includes the local project and identity labels |
 | VS Code settings and workspace state | `$CODEX_HOME/vscode-user-data` | Never by default |

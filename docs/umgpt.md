@@ -258,12 +258,41 @@ The normal identity rejects Claude, Gemini, Llama, and other IDs outside the
 U-M Azure OpenAI lane. The low-sensitivity identity permits general text
 models and prints a prominent warning at launch.
 
-Codex's `/model` selector may not contain every model exposed by the custom
-U-M gateway. `probe-models` and `models` do not alter that selector. Use the
-exact ID with `-m`, or update the default as shown above. The helper does not
-install a custom `model_catalog_json`, which would add another static catalog
-to maintain. See
-the [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference#model_catalog_json).
+Codex's CLI `/model` selector and VS Code model picker use a separate catalog.
+Without a custom catalog, they can show only bundled OpenAI models even when
+the active model is `claude-sonnet-5`. `probe-models` and `models` only print
+IDs; they do not change either picker.
+
+Populate each identity's picker from the live gateway:
+
+```bash
+./bin/codex-home refresh-models umgpt
+./bin/codex-home refresh-models umgpt-low
+```
+
+The command writes `model-catalog.json` in that identity's home and sets its
+top-level `model_catalog_json` configuration. The normal identity receives
+only GPT/o-series text IDs; the low-sensitivity identity receives the broader
+text list. Restart the Codex CLI, or run **Developer: Reload Window** in VS
+Code and start a new Codex chat. Both pickers then use that identity's catalog.
+The saved default model stays unchanged.
+
+Refresh explicitly when models change; ordinary launches use the saved catalog
+without a discovery request. This catalog is generated from `/models`, not
+from the checked-in snapshot or default-model TOML files. A failed request or
+catalog validation leaves the existing files intact. An existing user-managed
+catalog at another path must be removed from configuration before using this
+command.
+
+The installed Codex CLI supplies metadata for model IDs it recognizes. Other
+IDs receive generic coding instructions and conservative text-only settings,
+without advertised reasoning levels or an assumed context-window size. These
+settings make the model selectable; they do not establish Responses API,
+streaming, or tool-call compatibility. Run the compatibility check below for
+each model you intend to use. Update Codex if it does not support
+`codex debug models --bundled`. See the
+[Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
+for `model_catalog_json`.
 
 ## 6. Validate compatibility
 

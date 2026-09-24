@@ -57,7 +57,7 @@ The helper runs on macOS and Linux with Bash 3.2 or newer.
 | Use | Requirements |
 |---|---|
 | Run Codex from the terminal | Git, Codex CLI, and `jq` |
-| Discover API models or generate a model snapshot | Also install `curl` 7.76.0 or newer |
+| Discover API models, refresh model pickers, or generate a model snapshot | Also install `curl` 7.76.0 or newer |
 | Select an identity by project | Also install `direnv` 2.32.2 or newer |
 | Open labeled VS Code windows | Also install VS Code and the Codex extension |
 | Run the tests | Also install `direnv` 2.32.2 or newer and `expect` |

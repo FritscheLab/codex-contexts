@@ -180,6 +180,20 @@ Responses API. Current Codex custom providers require `wire_api = "responses"`.
 Ask the provider whether the chosen route/model supports streaming Responses
 and tool calls.
 
+## U-M model pickers only show standard OpenAI models
+
+The active model and the picker catalog are separate. A CLI header showing
+`claude-sonnet-5` alongside an OpenAI-only `/model` menu means the configured
+model loaded, but the picker still uses Codex's bundled catalog. VS Code uses
+the same catalog mechanism.
+
+Run `codex-home refresh-models umgpt-low` to generate the broader U-M text
+catalog, or `codex-home refresh-models umgpt` for the GPT/o-series scope. Then
+restart the CLI. In VS Code, run **Developer: Reload Window** and start a new
+Codex chat. Repeat the refresh when gateway models change. `models NAME` only
+prints the live IDs and does not update the picker. See
+[U-M model selection](umgpt.md#5-select-a-model-for-one-session).
+
 ## Model or deployment not found
 
 Do not substitute a public model name for a gateway-specific ID. Rerun:

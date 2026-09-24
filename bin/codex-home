@@ -29,6 +29,7 @@ Usage:
   codex-home set-key NAME
   codex-home probe-models BASE_URL
   codex-home models NAME
+  codex-home refresh-models NAME
   codex-home snapshot-umgpt-models [NAME [OUTPUT]]
   codex-home login NAME
   codex-home project NAME [PROJECT_DIR]
@@ -873,6 +874,101 @@ models_for_identity() {
   unset api_key
 }
 
+refresh_models() (
+  # A subshell keeps credentials, the temporary CODEX_HOME, and cleanup local.
+  [[ $# -eq 1 ]] || die "usage: codex-home refresh-models NAME"
+  local name="$1"
+  local home scope key_env api_key ids id allowed="" scratch catalog configured_model
+  local line in_top_level=1
+  ensure_identity "$name"
+  scope="$(identity_umgpt_scope "$name" 2>/dev/null || true)"
+  case "$scope" in
+    openai-only|low-sensitivity) ;;
+    *) die "refresh-models requires a scoped U-M GPT identity" ;;
+  esac
+  validate_umgpt_identity_config "$name" skip-catalog
+  command -v codex >/dev/null 2>&1 || die "codex is required to build the model picker catalog"
+  home="$(cd "$(identity_home "$name")" && pwd -P)"
+  catalog="$home/model-catalog.json"
+  configured_model="$(config_value "$home/config.toml" model)"
+  # Preserve a user-managed catalog rather than silently replacing it.
+  while IFS= read -r line; do
+    [[ "$line" == "$catalog" ]] || die "config uses another model_catalog_json; remove that setting before refreshing"
+  done < <(config_values "$home/config.toml" model_catalog_json)
+  [[ ! -L "$catalog" && ( ! -e "$catalog" || -f "$catalog" ) ]] ||
+    die "catalog is not a regular, non-symlink file: $catalog"
+
+  key_env="$(api_key_env_for "$name")"
+  load_secret_env "$home"
+  api_key="${!key_env:-}"
+  [[ -n "$api_key" ]] || die "$key_env is not set; run: codex-home set-key $name"
+  ids="$(fetch_model_ids "$UMGPT_BASE_URL" "$api_key")" || return
+  unset api_key
+  while IFS= read -r id; do
+    is_model_id "$id" || die "the gateway returned an invalid model ID; catalog not updated"
+    is_umgpt_general_text_model "$id" || continue
+    if [[ "$scope" == openai-only ]]; then
+      is_umgpt_openai_text_model "$id" || continue
+    fi
+    allowed+="$id"$'\n'
+  done <<< "$ids"
+  [[ -n "$allowed" ]] || die "the gateway returned no models allowed by this identity; catalog not updated"
+
+  umask 077
+  scratch="$(mktemp -d "$home/.model-catalog.XXXXXX")"
+  trap 'rm -rf -- "$scratch"' EXIT
+  # Use the installed client's metadata for known models without loading a
+  # possibly stale catalog or project configuration, and without remote refresh.
+  (cd "$scratch" && CODEX_HOME="$scratch" codex debug models --bundled) > "$scratch/bundled.json" ||
+    die "could not read the bundled Codex catalog; update Codex and retry"
+  printf '%s' "$allowed" | jq -Rsc 'split("\n") | map(select(length > 0)) | unique' > "$scratch/ids.json"
+  jq --slurpfile ids "$scratch/ids.json" --arg selected "$configured_model" '
+    .models as $bundled
+    | {models: ($ids[0] | sort_by([. != $selected, .]) | to_entries | map(
+        .key as $rank | .value as $id
+        | ([$bundled[] | select(.slug == $id)][0] // {
+            slug: $id,
+            description: "U-M Toolkit text model; Codex compatibility unverified",
+            base_instructions: "You are Codex, a coding assistant. Work with the user to complete their task. Read the relevant project instructions and inspect existing code before editing. Use the available tools to make focused changes and verify them. Preserve unrelated user changes. Explain the outcome, validation, and remaining limitations accurately.",
+            default_reasoning_level: null,
+            supported_reasoning_levels: [],
+            shell_type: "shell_command",
+            support_verbosity: false,
+            default_verbosity: null,
+            apply_patch_tool_type: null,
+            default_reasoning_summary: "none",
+            truncation_policy: {mode: "tokens", limit: 10000},
+            experimental_supported_tools: [],
+            input_modalities: ["text"]
+          })
+        | . + {display_name: $id, visibility: "list", supported_in_api: true,
+               priority: $rank, upgrade: null, availability_nux: null}
+      ))}
+  ' "$scratch/bundled.json" > "$scratch/catalog.json" || die "could not build the model picker catalog"
+  # Ask the installed Codex parser to check the generated catalog before either
+  # live file changes. This performs no model inference or remote discovery.
+  printf 'model_catalog_json = %s\n' "$(toml_quote "$scratch/catalog.json")" > "$scratch/config.toml"
+  (cd "$scratch" && CODEX_HOME="$scratch" codex debug models --bundled >/dev/null) ||
+    die "Codex rejected the generated model catalog; existing files unchanged"
+
+  {
+    printf 'model_catalog_json = %s\n' "$(toml_quote "$catalog")"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ ! "$line" =~ ^[[:space:]]*\[ ]] || in_top_level=0
+      if [[ "$in_top_level" -eq 1 && "$line" =~ ^[[:space:]]*model_catalog_json[[:space:]]*= ]]; then
+        continue
+      fi
+      printf '%s\n' "$line"
+    done < "$home/config.toml"
+  } > "$scratch/identity-config.toml"
+  mv "$scratch/catalog.json" "$catalog"
+  mv "$scratch/identity-config.toml" "$home/config.toml"
+  printf 'Updated picker catalog for %s: %s model(s).\n' "$name" "$(jq '.models | length' "$catalog")"
+  printf 'Catalog: %s\n' "$catalog"
+  printf '%s\n' 'Restart Codex CLI; in VS Code run Developer: Reload Window, then start a new Codex chat.'
+  printf '%s\n' 'Listing a model does not verify Responses API or tool-call compatibility.'
+)
+
 snapshot_umgpt_models() {
   [[ $# -le 2 ]] || die "usage: codex-home snapshot-umgpt-models [NAME [OUTPUT]]"
   local name="${1:-umgpt}"
@@ -990,9 +1086,20 @@ validate_umgpt_identity_config() {
   [[ "$key_env" == "UMGPT_API_KEY" ]] || die "U-M GPT identity '$name' must use UMGPT_API_KEY"
   [[ -n "$model" ]] || die "could not find model in $config"
   validate_umgpt_model "$scope" "$model"
-  if [[ "$scope" == "openai-only" ]] &&
+  if [[ "${2:-}" != skip-catalog && "$scope" == "openai-only" ]] &&
     grep -Eq '^[[:space:]]*model_catalog_json[[:space:]]*=' "$config"; then
-    die "U-M GPT Azure OpenAI identities may not set model_catalog_json; the standard Codex catalog keeps the picker OpenAI-only"
+    local catalog id
+    catalog="$(config_value "$config" model_catalog_json)"
+    [[ "$catalog" == "$(cd "$home" && pwd -P)/model-catalog.json" ]] ||
+      die "U-M GPT Azure OpenAI identities require a scope-filtered catalog from refresh-models"
+    command -v jq >/dev/null 2>&1 || die "jq is required to validate the model catalog"
+    jq -e '.models | type == "array" and length > 0 and all(.[];
+      type == "object" and (.slug | type == "string" and
+        test("^[a-zA-Z0-9][a-zA-Z0-9._:/@+-]*$") and (contains("\n") | not)))' "$catalog" >/dev/null ||
+      die "invalid model catalog; run: codex-home refresh-models $name"
+    while IFS= read -r id; do
+      validate_umgpt_model "$scope" "$id"
+    done < <(jq -r '.models[].slug' "$catalog")
   fi
 }
 
@@ -2411,6 +2518,7 @@ main() {
     set-key) set_key "$@" ;;
     probe-models) probe_models "$@" ;;
     models) models_for_identity "$@" ;;
+    refresh-models) refresh_models "$@" ;;
     snapshot-umgpt-models) snapshot_umgpt_models "$@" ;;
     login) login_identity "$@" ;;
     project) write_project_files "$@" ;;

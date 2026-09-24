@@ -22,6 +22,7 @@ generated project `.envrc`.
 | `set-key NAME` | Prompt without echo and save an API key locally |
 | `probe-models URL` | Print model IDs advertised by a provider before creating an identity |
 | `models NAME` | List models using a stored identity key, filtered by its U-M GPT scope when applicable |
+| `refresh-models NAME` | Refresh a scoped U-M GPT identity's CLI and VS Code model picker from the live gateway catalog |
 | `snapshot-umgpt-models [NAME [OUTPUT]]` | Write a dated snapshot of the raw U-M catalog and both local scope classifications; defaults to `umgpt` and `docs/umgpt-models-snapshot.md` |
 | `login NAME` | Sign in to a subscription identity |
 | `project NAME [DIR]` | Create a project's `.envrc` and labeled VS Code workspace |
@@ -126,6 +127,21 @@ Compare the selected home and configured provider/model with the window label.
 the authenticated account or effective runtime overrides. A missing `auth.json`
 alone does not prove sign-out on a managed computer; check CLI `login status`
 or the extension's profile menu.
+
+If the U-M identity's model picker only shows standard OpenAI models, populate
+its picker catalog once, then refresh it when the gateway's models change:
+
+```bash
+./bin/codex-home refresh-models umgpt-low
+```
+
+Use `umgpt` for the normal identity's filtered list. Restart the Codex CLI;
+in VS Code, run **Developer: Reload Window**, then start a new Codex chat.
+The active model and the picker list are separate: a configured Claude model
+can be active even while the picker still displays Codex's bundled models.
+`models NAME` only prints IDs; `refresh-models NAME` installs the picker catalog.
+Model visibility does not establish Codex compatibility. See
+[U-M model selection](umgpt.md#5-select-a-model-for-one-session).
 
 See OpenAI's [authentication guide](https://learn.chatgpt.com/docs/auth) and
 [CLI and IDE command reference](https://learn.chatgpt.com/docs/developer-commands)
