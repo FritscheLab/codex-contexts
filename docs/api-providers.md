@@ -1,5 +1,7 @@
 # API providers
 
+[Choose a provider](#support-matrix) · [Generic API](#generic-bearer-token-gateway) · [OpenAI](#openai-platform-api-key) · [Azure](#direct-azure-openai) · [Test tool calls](#validate-compatibility)
+
 Use a separate identity for each API provider or key. The helper can configure
 Responses-compatible APIs, direct Azure endpoints, and the U-M GPT gateway.
 Other providers supported by Codex need manual setup.
@@ -34,7 +36,7 @@ covered by this repository's tests.
 - supports the selected model ID through that endpoint.
 
 The model can come from OpenAI or another vendor. For U-M GPT, prefer the
-scoped commands below instead of a generic `create-api` identity. Test each
+[U-M setup commands](umgpt.md) instead of a generic `create-api` identity. Test each
 selected model with Codex's Responses requests and tool calls. U-M GPT requires
 its own API key and bills Toolkit usage separately; see the
 [cost and quota guidance](umgpt.md#costs-and-spending-controls).
@@ -50,117 +52,21 @@ selects a separate home for each provider.
 
 ## U-M GPT model scopes
 
-Use the normal identity for Azure OpenAI text models provided through the U-M
-Toolkit gateway:
+For the U-M Toolkit gateway, use [U-M GPT setup](umgpt.md). It covers API keys,
+costs, initial model selection, and compatibility checks for these identities:
 
-```bash
-./bin/codex-home create-umgpt
-./bin/codex-home set-key umgpt
-```
+- `umgpt`: GPT and o-series text IDs through U-M's Azure OpenAI-backed gateway.
+- `umgpt-low`: broader text-model access, with a **LOW-SENSITIVITY DATA ONLY** warning.
 
-This identity is pinned to U-M's Toolkit URL; it does not call
-`api.openai.com` or a user-managed Azure endpoint. ITS describes its AI
-services as running in a private Microsoft Azure environment and U-M GPT as
-providing Azure OpenAI models. See the
-[U-M GPT guide](umgpt.md#what-azure-openai-means-here) for the official-source
-links and the distinction from direct OpenAI products.
-
-Use a separate, visibly labeled identity for other general text models such as
-Claude:
-
-```bash
-./bin/codex-home create-umgpt-low
-./bin/codex-home set-key umgpt-low
-```
-
-With no `MODEL` argument, these commands use the saved local defaults. For the
-standard `umgpt` or `umgpt-low` name, an explicit `MODEL` also becomes that
-identity's local default.
-
-The checked-in [`config/umgpt-models.toml`](../config/umgpt-models.toml)
-contains this repository's two recommended model IDs. Each user can differ
-through `$CODEX_HOMES_ROOT/umgpt-models.toml` (`~/.codex-homes` is the default
-root). Show both sets of values with:
-
-```bash
-./bin/codex-home umgpt-defaults
-```
-
-Update one local default and its existing standard identity with:
-
-```bash
-./bin/codex-home set-umgpt-default umgpt GPT_MODEL
-./bin/codex-home set-umgpt-default umgpt-low OTHER_TEXT_MODEL
-```
-
-Alternatively, edit the path printed by `umgpt-defaults`, then validate and
-apply both values:
-
-```bash
-./bin/codex-home apply-umgpt-defaults
-```
-
-After pulling a change to the checked-in recommendations, explicitly copy
-both into the local file and update existing standard identities with:
-
-```bash
-./bin/codex-home reset-umgpt-defaults
-```
-
-Applying or resetting defaults updates only standard identities named `umgpt`
-and `umgpt-low`, and skips either one that has not been created. Resetting
-overwrites local choices; merely pulling the repository does not. Discover
-newly available model IDs from the live gateway rather than treating either
-TOML file as a catalog:
-
-```bash
-./bin/codex-home models umgpt
-./bin/codex-home models umgpt-low
-```
-
-Both commands reject image-generation and embedding models. `models NAME`
-filters the gateway's model list to the identity's scope, and `run` validates
-the effective model and blocks configuration overrides that could bypass that
-scope. `umgpt` accepts IDs matching the shell patterns `gpt-*` or `o[0-9]*`;
-`umgpt-low` accepts all IDs except those containing `image` or `embedding`, so
-it is a superset. These are name-based heuristics; see the
-[exact filtering rules and generated snapshot](umgpt.md#exact-local-filtering-rules).
-Older U-M GPT identities created before scopes were introduced must be
-classified before launch:
-
-```bash
-./bin/codex-home set-umgpt-scope umgpt openai-only
-```
-
-Choose `low-sensitivity` only for an identity whose configured model and
-intended data satisfy current U-M rules. The scope names and warnings are local
-guardrails; they do not certify that any model, Codex workflow, or data type is
-institutionally approved. See [U-M GPT](umgpt.md) for setup and governance
-details.
+Use the scope appropriate for your approved model, workflow, and data. Scope
+labels are local safeguards; check [U-M data permissions](umgpt.md#check-data-permissions-first)
+before use. After setup, use [Model settings and comparison](../MODELS.md) to
+change defaults and picker order.
 
 ### Provider display names
 
-New U-M identities use `U-M GPT Toolkit (umgpt)` or
-`U-M GPT Toolkit (umgpt-low; LOW-SENSITIVITY DATA ONLY)` as the provider
-display name. Custom identity names replace `umgpt` or `umgpt-low` in those
-labels, so multiple keys remain distinguishable.
-
-For an existing identity, edit only the `name` value in its provider table in
-`$CODEX_HOME/config.toml`. For example, in
-`~/.codex-homes/umgpt/config.toml`:
-
-```toml
-[model_providers.umgpt]
-name = "U-M GPT Toolkit (umgpt)"
-# Keep the existing base_url, env_key, and wire_api entries here.
-```
-
-The [`name` field is Codex's provider display name](https://learn.chatgpt.com/docs/config-file/config-reference).
-Keep `model_provider = "umgpt"` and `[model_providers.umgpt]` unchanged:
-the helper uses the identity name as the provider ID and checks it at launch.
-Restart Codex to use the updated configuration. Display varies by client and
-version; CLI `/status` may still show the provider ID. Existing configuration
-files are not rewritten automatically when you update this repository.
+For an existing U-M identity's label, follow
+[Provider display names](umgpt.md#provider-display-names) in the U-M guide.
 
 ## Generic bearer-token gateway
 

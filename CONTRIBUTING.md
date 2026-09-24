@@ -65,6 +65,39 @@ model, authentication method, and tested tool behavior. A successful model
 listing or plain-text response is not enough to establish full Codex
 compatibility.
 
+## Writing documentation
+
+Give each procedure one maintained home. Other pages can summarize its purpose
+and link to it; repeat a command only when readers need it to finish the current
+task.
+
+| Content | Maintained home |
+|---|---|
+| Orientation and guide choices | `README.md` |
+| Prerequisites, installation, and updates | `INSTALLATION.md` |
+| Identity creation and provider-specific setup | `docs/subscriptions.md`, `docs/api-providers.md`, `docs/umgpt.md` |
+| Project setup and terminal/VS Code use | `docs/projects-vscode.md` |
+| Model comparison and saved settings | `MODELS.md` |
+| Model sources, catalog behavior, and picker recovery | `docs/model-reference.md` |
+| Command syntax and identity verification | `docs/commands.md` |
+| Symptom lookup | `docs/troubleshooting.md` |
+| Finder setup and menu cleanup | `docs/macos-open-with.md` |
+| Removing a folder's context | `docs/remove-folder-context.md` |
+
+Write for someone completing a task: give the action, expected result, and a
+recovery link. Keep essential warnings beside the affected action. Use
+**identity** for a named account/provider configuration, **home** for its
+`CODEX_HOME` directory, and **project context** for a project's identity selection.
+Use preferred command names in tutorials; keep old names in compatibility notes.
+
+When moving a section, update internal links and leave a useful destination at
+its old anchor. Check the Markdown links and Mermaid diagrams with the
+[documentation CI checks](.github/workflows/ci.yml), and walk through the changed
+reading path. Compare helper examples with `./bin/codex-home help` and the
+implementation. Verify changed upstream claims against current official sources.
+If a change affects the printable cheatsheet, update its source and inspect the
+rebuilt PDF as described below.
+
 ## Update the U-M GPT model snapshot
 
 The checked-in snapshot is a dated record for review, not a runtime catalog.

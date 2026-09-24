@@ -4,14 +4,21 @@ Codex Contexts helps you keep personal, lab, and other Codex accounts apart.
 Choose an account or API provider for each project, then open a clearly labeled
 VS Code window or run Codex from the terminal.
 
-The `codex-home` command gives each account or provider its own local
-`CODEX_HOME` directory, called an **identity**. It runs on macOS
-and Linux, with optional `direnv`, VS Code, and macOS Finder integration.
+An **identity** is a named Codex configuration for an account or API provider.
+Its **home** is the private directory selected by `CODEX_HOME`. A **project
+context** selects which identity a project uses.
+
+The `codex-home` command manages these identities on macOS and Linux, with
+optional `direnv`, VS Code, and macOS Finder integration.
 
 Developed at the [Fritsche Lab](https://fritschelab.org/), University of Michigan.
 
-**New here?** Follow [Installation](INSTALLATION.md) for the complete macOS or
-Linux setup, from prerequisites through your first identity and project.
+| Start here | Next step |
+|---|---|
+| First setup on this computer | [Install prerequisites, create an identity, and configure a project](INSTALLATION.md) |
+| Already have an identity | [Assign it to a project and launch Codex](docs/projects-vscode.md) |
+| Choosing or changing U-M models | [Compare models and set defaults](MODELS.md) |
+| Something went wrong | [Find the symptom in Troubleshooting](docs/troubleshooting.md) |
 
 ## One account choice per project
 
@@ -84,8 +91,7 @@ sandbox. Keep credentials and identity homes private. See the
 ## Get started
 
 If the prerequisites are installed and the clone is ready, use this quick path.
-Otherwise, begin with [Installation](INSTALLATION.md). The helper runs without
-administrator rights; installing some prerequisites may require them.
+Otherwise, begin with [Installation](INSTALLATION.md).
 
 From the clone directory, create a ChatGPT identity and sign in:
 
@@ -94,45 +100,21 @@ From the clone directory, create a ChatGPT identity and sign in:
 ./bin/codex-home login personal
 ```
 
-Check the intended account and workspace in the browser during sign-in. Then
-check the CLI authentication method and launch a session:
+Check the intended account and workspace in the browser during sign-in, then
+follow [Check the selected identity](docs/commands.md#check-the-selected-identity)
+to verify the login and launch a CLI session.
 
-```bash
-./bin/codex-home run personal login status
-./bin/codex-home run personal
-```
+For an API key, start with [API providers](docs/api-providers.md) or
+[U-M GPT](docs/umgpt.md). Those guides cover access, billing, and a tool-call
+test with your selected model.
 
-In the CLI, use `/status` to inspect the active model and session configuration.
-The identity name is a local label; see [verification for CLI and VS Code](docs/commands.md#check-the-selected-identity).
+Next, [assign the identity to a project](docs/projects-vscode.md#generate-project-files).
+That guide covers generating and reviewing the files, approving `.envrc`, and
+launching from the terminal or VS Code. Review `.envrc` before approving it:
+it contains executable shell code and local paths.
 
-For an API key, follow the [API provider](docs/api-providers.md) or
-[U-M GPT](docs/umgpt.md) guide. Each guide covers access, billing, and a test of
-Codex tool calls with your selected model.
-
-After exiting Codex, use your identity for a project in VS Code:
-
-```bash
-./bin/codex-home project personal "/path/to/project"
-```
-
-Review the generated `.envrc` and `.vscode/<folder-name>.code-workspace`.
-The `.envrc` contains executable shell code and local paths. Then approve it
-and launch:
-
-```bash
-direnv allow "/path/to/project"
-./bin/codex-home vscode personal "/path/to/project"
-```
-
-The helper preserves existing project files and uses local Git exclusions for
-the files it generates. Start a new Codex chat and [verify the extension's
-account and selected model](docs/commands.md#check-the-selected-identity).
-See [Projects and VS Code](docs/projects-vscode.md) for terminal use and
-existing project configuration.
-
-For right-click access on macOS, run `./bin/install-macos-open-with`, then
-choose **Quick Actions > Open in Codex Project** on a project folder. The
-[Finder guide](docs/macos-open-with.md) covers installation and menu discovery.
+For right-click access on macOS, follow the optional
+[Finder setup](docs/macos-open-with.md#install-the-finder-integration).
 
 ## Guides
 
@@ -145,8 +127,11 @@ for setup steps and everyday commands.
 | Keep ChatGPT accounts and workspaces separate | [Subscriptions](docs/subscriptions.md) |
 | Use an API key or Azure endpoint | [API providers](docs/api-providers.md) |
 | Connect to the U-M GPT Toolkit | [U-M GPT setup and costs](docs/umgpt.md) |
+| Choose models, compare costs, or change picker order | [Model settings and comparison](MODELS.md) |
 | Select an account by project | [Projects and VS Code](docs/projects-vscode.md) |
+| Remove Codex settings from a folder, including when the menu fails | [Folder removal guide](docs/remove-folder-context.md) |
 | Open a project from Finder | [macOS integration](docs/macos-open-with.md) |
+| Remove extra VS Code entries from Open With | [Remove one or all entries](docs/macos-open-with.md#remove-extra-vs-code-entries-from-open-with-on-macos) |
 | Reuse personal skills across accounts | [Sharing skills](docs/skills.md) |
 | Look up a command or fix a problem | [Commands](docs/commands.md) · [Troubleshooting](docs/troubleshooting.md) |
 | Check credential storage and data restrictions | [Security guide](docs/security.md) |

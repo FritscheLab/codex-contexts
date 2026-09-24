@@ -1,5 +1,11 @@
 # U-M GPT API setup
 
+[Setup steps](#1-obtain-an-api-key) · [Data permissions](#check-data-permissions-first) · [Scope details](#exact-local-filtering-rules) · [Troubleshooting](troubleshooting.md#accounts-and-models)
+
+**Already connected?** Go to [Model settings and comparison](../MODELS.md) to
+change defaults, reorder your picker, or compare prices, context windows, and
+benchmarks. This page covers connection and compatibility setup.
+
 Use this guide if you have access to the U-M GPT Toolkit API and approval to
 use it for your work. A Toolkit API key is separate from a ChatGPT login. The
 helper uses the U-M gateway at:
@@ -12,7 +18,8 @@ After [installing prerequisites and cloning the repository](../INSTALLATION.md#1
 (Installation steps 1–3), run `./bin/codex-home` examples from the clone
 directory; bare `codex-home` assumes it is on PATH.
 
-Two deliberately separate identities reduce accidental model switching:
+Choose the identity whose scope fits your work. Use separate identities when
+you need both scopes:
 
 | Identity | Model scope | Intended use |
 |---|---|---|
@@ -21,29 +28,8 @@ Two deliberately separate identities reduce accidental model switching:
 
 Both scopes reject image-generation and embedding model IDs because they are
 not general Codex text models. The names are local guardrails, not U-M data
-classifications or evidence of institutional approval.
-
-### What “Azure OpenAI” means here
-
-[ITS describes U-M GPT](https://its.umich.edu/computing/ai) as providing
-hosted Azure OpenAI models alongside U-M-hosted open-source models. The
-[ITS AI Services FAQ](https://its.umich.edu/computing/ai/faq) says the U-M AI
-environment is housed in a private Microsoft Azure cloud, and the
-[ITS AI Services privacy notice](https://safecomputing.umich.edu/viziblue/ai-data)
-says Microsoft Azure Services supports delivery under contractual privacy and
-security controls.
-
-The official [Codex via U-M GPT Toolkit](https://its.umich.edu/computing/ai/codex-gpt-toolkit)
-page confirms that Codex model requests go through the Toolkit gateway and do
-not require a separate OpenAI API account.
-
-Accordingly, `umgpt` means GPT and o-series text IDs reached through the exact
-U-M Toolkit gateway above. It does **not** mean a direct OpenAI Platform API
-key, a personal ChatGPT account, or arbitrary software from OpenAI. U-M's
-[guidance for direct OpenAI products](https://teamdynamix.umich.edu/TDClient/30/Portal/KB/Article/12163/Can-t-Connect-My-OpenAI-Account-Product-to-My-U-M-Google-or-Microsoft-365-Account)
-states that U-M has no binding DPA or BAA with OpenAI for those products. A
-`gpt-*` model name outside the U-M gateway therefore does not inherit the
-Toolkit's approval or protections.
+classifications or evidence of institutional approval. See
+[how the U-M gateway differs from direct OpenAI access](#what-azure-openai-means-here).
 
 ## Check data permissions first
 
@@ -84,27 +70,138 @@ portal's **Total Spend** rather than assuming one fixed cost per task.
 
 ## 2. Discover current model IDs
 
-Before creating an identity, query the gateway with a hidden key prompt:
+Query the gateway with a hidden key prompt:
 
 ```bash
 ./bin/codex-home probe-models https://api.toolkit.umgpt.umich.edu/v1
 ```
 
-This prints the current IDs from `/v1/models` without storing the key. Once an
-identity exists, use its stored key and scope-aware list:
+This prints the IDs advertised to your key without storing it. Match your
+choice to the scope above; [exact filtering rules](#exact-local-filtering-rules)
+are listed below. A model list does not establish tool-call compatibility.
+You will test that in step 6.
+
+## 3. Choose your models
+
+To start with the saved defaults, inspect them:
 
 ```bash
-./bin/codex-home models umgpt
-./bin/codex-home models umgpt-low
+./bin/codex-home model-settings
 ```
 
-`models umgpt` shows GPT and o-series text IDs from U-M's Azure OpenAI lane.
-`models umgpt-low` shows general text IDs across vendors. Both hide
-image-generation and embedding IDs. This live query is the easiest way to
-accommodate models added by U-M over time; no static list in this repository
-is authoritative.
+This works before creating an identity. For a new setup, it creates your personal
+settings file from the [repository template](../config/umgpt-models.toml).
+If standard identities already exist, initialization imports their valid
+configured defaults. Confirm the defaults appear in the live list from step 2.
+To choose another model, [compare models](../MODELS.md#compare-models), then
+pass its exact ID when creating the identity in step 4.
 
-### Exact local filtering rules
+After setup, use [Change defaults and order](../MODELS.md#change-defaults-and-order)
+to edit saved choices and arrange the picker. Repository updates preserve
+your personal settings and existing identities' configured models.
+
+<a id="4-create-the-two-identities"></a>
+
+## 4. Create the identities you need
+
+Run the pair of commands for each identity you need. They use the saved
+defaults and prompt for its key:
+
+```bash
+./bin/codex-home create-umgpt
+./bin/codex-home set-key umgpt
+
+./bin/codex-home create-umgpt-low
+./bin/codex-home set-key umgpt-low
+```
+
+Each key is stored in that identity's `.env` file with owner-only permissions
+(mode `600`). To choose a different initial model, replace the corresponding
+creation command above with one of these examples, using an ID from step 2:
+
+```bash
+./bin/codex-home create-umgpt gpt-6-sol
+./bin/codex-home create-umgpt-low claude-opus-5-5
+```
+
+For the standard names, an explicit model also becomes the saved default.
+If an identity already exists, [change its settings](../MODELS.md#change-defaults-and-order)
+instead of creating it again. For identities created before scopes were added,
+follow [Upgrade an older identity](#upgrade-an-older-identity).
+
+<a id="5-select-a-model-for-one-session"></a>
+
+## 5. Populate the model picker
+
+Refresh the picker for each identity you created:
+
+```bash
+./bin/codex-home refresh-models umgpt
+./bin/codex-home refresh-models umgpt-low
+```
+
+Restart the CLI, or run **Developer: Reload Window** in VS Code and start a
+new Codex chat. The picker should show models within that identity's scope,
+with its saved default first. The default itself stays unchanged.
+
+`probe-models` and `models` only print IDs; `refresh-models` updates the picker.
+For a one-session override, catalog details, or a failed refresh, see the
+[model reference](model-reference.md#other-model-settings).
+
+## 6. Validate compatibility
+
+Inspect and diagnose each identity you created, replacing `umgpt` with
+`umgpt-low` for the broader scope:
+
+```bash
+./bin/codex-home show umgpt
+./bin/codex-home doctor umgpt
+./bin/codex-home models umgpt
+```
+
+Then run the [tool-call smoke test](api-providers.md#validate-compatibility),
+replacing `research-api` with the identity you are testing. Use non-sensitive
+test content; the request may incur charges. Repeat for each model you plan
+to use. A model listing or plain-text response does not establish full Codex
+compatibility.
+
+[Verify the selected identity](commands.md#check-the-selected-identity) before
+using it with project data. For failures, start with
+[API and model troubleshooting](troubleshooting.md#accounts-and-models).
+
+## 7. Assign an identity to a project
+
+Continue with [project setup](projects-vscode.md#generate-project-files), using
+`umgpt` or `umgpt-low` as the identity. That guide covers generating the files,
+reviewing them, approving `.envrc`, and opening the project.
+
+The normal U-M identity uses a navy VS Code status bar; the low-sensitivity
+identity uses red. Start a new Codex chat and
+[verify the selected identity](commands.md#check-the-selected-identity).
+
+## What “Azure OpenAI” means here
+
+[ITS describes U-M GPT](https://its.umich.edu/computing/ai) as providing
+hosted Azure OpenAI models alongside U-M-hosted open-source models. The
+[ITS AI Services FAQ](https://its.umich.edu/computing/ai/faq) says the U-M AI
+environment is housed in a private Microsoft Azure cloud, and the
+[ITS AI Services privacy notice](https://safecomputing.umich.edu/viziblue/ai-data)
+says Microsoft Azure Services supports delivery under contractual privacy and
+security controls.
+
+The official [Codex via U-M GPT Toolkit](https://its.umich.edu/computing/ai/codex-gpt-toolkit)
+page confirms that Codex model requests go through the Toolkit gateway and do
+not require a separate OpenAI API account.
+
+Accordingly, `umgpt` means GPT and o-series text IDs reached through the exact
+U-M Toolkit gateway above. It does **not** mean a direct OpenAI Platform API
+key, a personal ChatGPT account, or arbitrary software from OpenAI. U-M's
+[guidance for direct OpenAI products](https://teamdynamix.umich.edu/TDClient/30/Portal/KB/Article/12163/Can-t-Connect-My-OpenAI-Account-Product-to-My-U-M-Google-or-Microsoft-365-Account)
+states that U-M has no binding DPA or BAA with OpenAI for those products. A
+`gpt-*` model name outside the U-M gateway therefore does not inherit the
+Toolkit's approval or protections.
+
+## Exact local filtering rules
 
 The helper applies these literal, name-based rules to each model ID returned
 by the gateway:
@@ -120,218 +217,6 @@ rules inspect the ID string; they do not use provider metadata and do not
 establish the model's owner, capabilities, or approval status. The normal
 identity is additionally pinned to the exact U-M Toolkit gateway URL.
 
-### Dated model snapshot
-
-The repository includes a generated
-[U-M GPT model snapshot](umgpt-models-snapshot.md) so the catalog observed on
-one date can be reviewed without a live query. A maintainer with a configured,
-scoped identity and stored key can refresh it with:
-
-```bash
-./bin/codex-home snapshot-umgpt-models umgpt docs/umgpt-models-snapshot.md
-```
-
-The command accepts `snapshot-umgpt-models [NAME [OUTPUT]]`; its defaults are
-`umgpt` and `docs/umgpt-models-snapshot.md`. It records the raw `/models`
-response visible to that identity, then shows which IDs match each local rule.
-The result is dated, credential-specific, and informational. It is not a
-compatibility or institutional-approval list, and runtime validation never
-reads it. Use `codex-home models NAME` when you need the live, scope-filtered
-result for your own credential.
-
-The [Toolkit in-depth guide](https://its.umich.edu/computing/ai/gpt-toolkit-in-depth)
-warns that newly listed models may still be under testing. A listed model may
-not implement the Responses API, streaming, and tool calls required by Codex,
-and listing does not automatically approve it for sensitive data.
-
-## 3. Understand recommendations, defaults, and the live catalog
-
-The model settings are intentionally separated:
-
-| Source | Purpose |
-|---|---|
-| [`config/umgpt-models.toml`](../config/umgpt-models.toml) | Version-controlled recommendations maintained by this repository |
-| `~/.codex-homes/umgpt-models.toml` | Your local defaults for the standard `umgpt` and `umgpt-low` identities |
-| [`docs/umgpt-models-snapshot.md`](umgpt-models-snapshot.md) | Dated, generated observation retained for review; never used at runtime |
-| `codex-home models umgpt` / `codex-home models umgpt-low` | Current scope-filtered model IDs queried live from the U-M gateway |
-
-The repository file is the easy-to-find place for maintainers to update the
-two recommended IDs. It is not a complete or authoritative model catalog.
-Pulling a repository update does not silently replace a user's local choices.
-
-Show the repository recommendations beside your local defaults with:
-
-```bash
-./bin/codex-home umgpt-defaults
-```
-
-On a new setup, the local file starts from the checked-in recommendations. By
-default it is `~/.codex-homes/umgpt-models.toml` and currently contains:
-
-```toml
-umgpt = "gpt-6-sol"
-umgpt_low = "claude-sonnet-5"
-```
-
-When upgrading an existing standard identity, the helper preserves its valid
-configured model as the initial default instead of silently changing it.
-
-The local file contains model IDs only, never the API key. Update one local
-default and its existing standard identity with:
-
-```bash
-./bin/codex-home set-umgpt-default umgpt gpt-6-sol
-./bin/codex-home set-umgpt-default umgpt-low claude-sonnet-5
-```
-
-Alternatively, edit the TOML values and validate/apply both in one step:
-
-```bash
-./bin/codex-home apply-umgpt-defaults
-```
-
-After pulling a repository update, explicitly adopt both checked-in
-recommendations and update any existing standard identities with:
-
-```bash
-./bin/codex-home reset-umgpt-defaults
-```
-
-This overwrites both values in the local defaults file. It does not update
-additional named identities such as `umgpt-study-a`.
-
-The helper accepts only GPT and o-series text IDs for `umgpt`, while also
-pinning that identity to the U-M Toolkit URL. It refuses image or embedding
-IDs for either default. Set `CODEX_UMGPT_MODELS_FILE` if the defaults file must
-live elsewhere. Keep it outside a shared repository if different users need
-different defaults.
-
-## 4. Create the two identities
-
-With the defaults above, no model argument is needed:
-
-```bash
-./bin/codex-home create-umgpt
-./bin/codex-home set-key umgpt
-
-./bin/codex-home create-umgpt-low
-./bin/codex-home set-key umgpt-low
-```
-
-The key is stored separately in each identity's `.env` file with mode `600`.
-An explicit model can still be supplied during creation; for a standard
-identity, it also becomes the saved default:
-
-```bash
-./bin/codex-home create-umgpt gpt-6-sol
-./bin/codex-home create-umgpt-low claude-opus-5-5
-```
-
-To classify an older U-M identity created before model scopes were added:
-
-```bash
-./bin/codex-home set-umgpt-scope umgpt openai-only
-```
-
-The `openai-only` scope token means U-M's Azure OpenAI-backed Toolkit lane; it
-does not authorize or configure a direct OpenAI endpoint.
-
-Use `low-sensitivity` instead only for an older identity intentionally using a
-broader text model. An unclassified legacy U-M identity is blocked from helper
-launches until it is assigned a scope.
-
-New identities also use a `U-M GPT Toolkit` provider display name, including
-the identity name and a low-sensitivity warning where applicable. To update
-an existing identity's configured label, follow
-[Provider display names](api-providers.md#provider-display-names).
-
-## 5. Select a model for one session
-
-Pass an exact ID without changing the saved default:
-
-```bash
-./bin/codex-home run umgpt -m gpt-5.6-terra
-./bin/codex-home run umgpt-low -m claude-opus-5-5
-```
-
-The normal identity rejects Claude, Gemini, Llama, and other IDs outside the
-U-M Azure OpenAI lane. The low-sensitivity identity permits general text
-models and prints a prominent warning at launch.
-
-Codex's CLI `/model` selector and VS Code model picker use a separate catalog.
-Without a custom catalog, they can show only bundled OpenAI models even when
-the active model is `claude-sonnet-5`. `probe-models` and `models` only print
-IDs; they do not change either picker.
-
-Populate each identity's picker from the live gateway:
-
-```bash
-./bin/codex-home refresh-models umgpt
-./bin/codex-home refresh-models umgpt-low
-```
-
-The command writes `model-catalog.json` in that identity's home and sets its
-top-level `model_catalog_json` configuration. The normal identity receives
-only GPT/o-series text IDs; the low-sensitivity identity receives the broader
-text list. Restart the Codex CLI, or run **Developer: Reload Window** in VS
-Code and start a new Codex chat. Both pickers then use that identity's catalog.
-The saved default model stays unchanged.
-
-Refresh explicitly when models change; ordinary launches use the saved catalog
-without a discovery request. This catalog is generated from `/models`, not
-from the checked-in snapshot or default-model TOML files. A failed request or
-catalog validation leaves the existing files intact. An existing user-managed
-catalog at another path must be removed from configuration before using this
-command.
-
-The installed Codex CLI supplies metadata for model IDs it recognizes. Other
-IDs receive generic coding instructions and conservative text-only settings,
-without advertised reasoning levels or an assumed context-window size. These
-settings make the model selectable; they do not establish Responses API,
-streaming, or tool-call compatibility. Run the compatibility check below for
-each model you intend to use. Update Codex if it does not support
-`codex debug models --bundled`. See the
-[Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
-for `model_catalog_json`.
-
-## 6. Validate compatibility
-
-```bash
-./bin/codex-home show umgpt
-./bin/codex-home doctor umgpt
-./bin/codex-home models umgpt
-
-./bin/codex-home show umgpt-low
-./bin/codex-home doctor umgpt-low
-./bin/codex-home models umgpt-low
-```
-
-Then run the tool-call smoke test in the
-[API provider validation guide](api-providers.md#validate-compatibility) with
-non-sensitive test content. A successful model listing or plain-text response
-does not establish full Codex compatibility.
-Then [check the selected identity](commands.md#check-the-selected-identity)
-before assigning it to a project.
-
-## 7. Assign an identity to a project
-
-```bash
-./bin/codex-home project umgpt "/path/to/project"
-```
-
-Review the generated `.envrc` and `.vscode/<folder-name>.code-workspace` before
-approval. Then run:
-
-```bash
-direnv allow "/path/to/project"
-./bin/codex-home vscode umgpt "/path/to/project"
-```
-
-Use `umgpt-low` in both helper commands for the broader identity. The normal
-identity uses a navy status bar; the low-sensitivity identity uses red. Start
-a new Codex chat and follow the [CLI or VS Code verification steps](commands.md#check-the-selected-identity)
-to check the selected home, provider configuration, authentication, and model.
-
 ## Guardrail boundaries
 
 For helper-launched sessions, `codex-home run` validates model overrides and
@@ -346,6 +231,45 @@ helper. Always start a new session after changing identities and
 [verify the selected identity](commands.md#check-the-selected-identity) before
 providing data.
 
+## Upgrade an older identity
+
+To classify an older U-M identity created before model scopes were added:
+
+```bash
+./bin/codex-home set-umgpt-scope umgpt openai-only
+```
+
+The `openai-only` scope token means U-M's Azure OpenAI-backed Toolkit lane; it
+does not authorize or configure a direct OpenAI endpoint.
+
+Use `low-sensitivity` instead only for an older identity intentionally using a
+broader text model. An unclassified legacy U-M identity is blocked from helper
+launches until it is assigned a scope.
+
+## Provider display names
+
+New U-M identities use `U-M GPT Toolkit (umgpt)` or
+`U-M GPT Toolkit (umgpt-low; LOW-SENSITIVITY DATA ONLY)` as the provider
+display name. Custom identity names replace `umgpt` or `umgpt-low` in those
+labels, so multiple keys remain distinguishable.
+
+For an existing identity, edit only the `name` value in its provider table in
+`$CODEX_HOME/config.toml`. For example, in
+`~/.codex-homes/umgpt/config.toml`:
+
+```toml
+[model_providers.umgpt]
+name = "U-M GPT Toolkit (umgpt)"
+# Keep the existing base_url, env_key, and wire_api entries here.
+```
+
+The [`name` field is Codex's provider display name](https://learn.chatgpt.com/docs/config-file/config-reference).
+Keep `model_provider = "umgpt"` and `[model_providers.umgpt]` unchanged:
+the helper uses the identity name as the provider ID and checks it at launch.
+Restart Codex to use the updated configuration. Display varies by client and
+version; CLI `/status` may still show the provider ID. Existing configuration
+files are not rewritten automatically when you update this repository.
+
 ## Multiple U-M keys
 
 Create a named identity for each additional key and specify its model:
@@ -359,7 +283,7 @@ Create a named identity for each additional key and specify its model:
 ```
 
 The local defaults file applies only when a creation command omits its model.
-`set-umgpt-default` and `apply-umgpt-defaults` update the standard identities
+`set-umgpt-default` and `apply-model-settings` update the standard identities
 named `umgpt` and `umgpt-low`; named identities retain their own configured
 models. `reset-umgpt-defaults` likewise updates only those two standard
 identities after copying the repository recommendations into the local file.

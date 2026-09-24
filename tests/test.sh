@@ -194,24 +194,27 @@ CODEX_HOMES_ROOT="$explicit_homes" \
 assert_line_once "$explicit_homes/umgpt-models.toml" 'umgpt = "gpt-6-luna"'
 assert_line_once "$explicit_homes/umgpt-models.toml" 'umgpt_low = "claude-opus-5-5"'
 
+# Test the checked-in recommendations, allowing maintainers to change them.
+repository_openai_model="$(sed -n 's/^umgpt = "\([^"]*\)"$/\1/p' "$ROOT/config/umgpt-models.toml")"
+repository_low_model="$(sed -n 's/^umgpt_low = "\([^"]*\)"$/\1/p' "$ROOT/config/umgpt-models.toml")"
 umgpt_defaults="$("$TOOL" umgpt-defaults)"
 grep -Fq "Repository defaults: $ROOT/config/umgpt-models.toml" \
   <<< "$umgpt_defaults"
 grep -Fq "Local defaults: $CODEX_HOMES_ROOT/umgpt-models.toml" \
   <<< "$umgpt_defaults"
-grep -Fq '  umgpt     gpt-6-sol  (U-M Azure OpenAI text only)' <<< "$umgpt_defaults"
-grep -Fq '  umgpt-low claude-sonnet-5  (LOW-SENSITIVITY DATA ONLY)' \
+grep -Fq "  umgpt     $repository_openai_model  (U-M Azure OpenAI text only)" <<< "$umgpt_defaults"
+grep -Fq "  umgpt-low $repository_low_model  (LOW-SENSITIVITY DATA ONLY)" \
   <<< "$umgpt_defaults"
-assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-6-sol"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" "umgpt = \"$repository_openai_model\""
 assert_line_once \
   "$CODEX_HOMES_ROOT/umgpt-models.toml" \
-  'umgpt_low = "claude-sonnet-5"'
+  "umgpt_low = \"$repository_low_model\""
 
 "$TOOL" create-umgpt >/dev/null
 [[ "$(cat "$CODEX_HOMES_ROOT/umgpt/.identity-kind")" == "umgpt-openai" ]]
 assert_api_config \
   "$CODEX_HOMES_ROOT/umgpt/config.toml" \
-  umgpt gpt-6-sol https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
+  umgpt "$repository_openai_model" https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
 
 if "$TOOL" create-umgpt claude-sonnet-5 umgpt-claude >/dev/null 2>&1; then
   fail "create-umgpt accepted a non-OpenAI model"
@@ -226,7 +229,7 @@ fi
 [[ "$(cat "$CODEX_HOMES_ROOT/umgpt-low/.identity-kind")" == "umgpt-low" ]]
 assert_api_config \
   "$CODEX_HOMES_ROOT/umgpt-low/config.toml" \
-  umgpt-low claude-sonnet-5 https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
+  umgpt-low "$repository_low_model" https://api.toolkit.umgpt.umich.edu/v1 UMGPT_API_KEY
 if "$TOOL" create-umgpt-low text-embedding-3-large umgpt-embedding >/dev/null 2>&1; then
   fail "create-umgpt-low accepted an embedding model"
 fi
@@ -237,36 +240,36 @@ umgpt_low_status="$("$TOOL" show umgpt-low)"
 grep -Fq 'Model scope     : broader U-M text models; LOW-SENSITIVITY DATA ONLY' \
   <<< "$umgpt_low_status"
 
-"$TOOL" set-umgpt-default umgpt gpt-6-luna >/dev/null
+"$TOOL" set-umgpt-default umgpt gpt-settings-test >/dev/null
 "$TOOL" set-umgpt-default umgpt-low claude-opus-5-5 >/dev/null
-assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-6-luna"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-settings-test"'
 assert_line_once \
   "$CODEX_HOMES_ROOT/umgpt-models.toml" \
   'umgpt_low = "claude-opus-5-5"'
-assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-6-luna"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-settings-test"'
 assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" 'model = "claude-opus-5-5"'
 
 "$TOOL" reset-umgpt-defaults >/dev/null
-assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" 'umgpt = "gpt-6-sol"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-models.toml" "umgpt = \"$repository_openai_model\""
 assert_line_once \
   "$CODEX_HOMES_ROOT/umgpt-models.toml" \
-  'umgpt_low = "claude-sonnet-5"'
-assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-6-sol"'
-assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" 'model = "claude-sonnet-5"'
+  "umgpt_low = \"$repository_low_model\""
+assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" "model = \"$repository_openai_model\""
+assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" "model = \"$repository_low_model\""
 
 # Manual edits are supported: validate and apply both values in one command.
-sed 's/gpt-6-sol/gpt-6-luna/; s/claude-sonnet-5/claude-opus-5-5/' \
-  "$CODEX_HOMES_ROOT/umgpt-models.toml" > "$TEST_ROOT/umgpt-models-edited.toml"
+printf 'umgpt = "gpt-settings-test"\numgpt_low = "claude-opus-5-5"\n' \
+  > "$TEST_ROOT/umgpt-models-edited.toml"
 mv "$TEST_ROOT/umgpt-models-edited.toml" "$CODEX_HOMES_ROOT/umgpt-models.toml"
 "$TOOL" apply-umgpt-defaults >/dev/null
-assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-6-luna"'
+assert_line_once "$CODEX_HOMES_ROOT/umgpt/config.toml" 'model = "gpt-settings-test"'
 assert_line_once "$CODEX_HOMES_ROOT/umgpt-low/config.toml" 'model = "claude-opus-5-5"'
 
 models_before_invalid="$(cat "$CODEX_HOMES_ROOT/umgpt-models.toml")"
 printf '%s\n' \
-  'umgpt = "gpt-6-sol"' \
-  'umgpt = "gpt-6-luna"' \
-  'umgpt_low = "claude-sonnet-5"' \
+  "umgpt = \"$repository_openai_model\"" \
+  'umgpt = "gpt-duplicate-test"' \
+  "umgpt_low = \"$repository_low_model\"" \
   > "$CODEX_HOMES_ROOT/umgpt-models.toml"
 if "$TOOL" apply-umgpt-defaults >/dev/null 2>&1; then
   fail "apply-umgpt-defaults accepted duplicate model keys"
@@ -764,14 +767,14 @@ umgpt_run_output="$(
   "$TOOL" run umgpt --version 2>&1
 )"
 grep -Fq 'Codex identity: U-M GPT (Azure OpenAI): UMGPT' <<< "$umgpt_run_output"
-[[ "$(cat "$TEST_ROOT/umgpt-codex-args")" == $'--model\ngpt-6-sol\n--version' ]] ||
+[[ "$(cat "$TEST_ROOT/umgpt-codex-args")" == $'--model\n'"$repository_openai_model"$'\n--version' ]] ||
   fail "run did not pin the configured U-M GPT OpenAI model"
 
 CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-override-args" \
   CODEX_TEST_CODEX_ENV="$TEST_ROOT/umgpt-override-env" \
   PATH="$TEST_ROOT/fake-bin:$PATH" \
-  "$TOOL" run umgpt --model gpt-6-luna 'test prompt' >/dev/null 2>&1
-[[ "$(cat "$TEST_ROOT/umgpt-override-args")" == $'--model\ngpt-6-luna\ntest prompt' ]] ||
+  "$TOOL" run umgpt --model gpt-session-test 'test prompt' >/dev/null 2>&1
+[[ "$(cat "$TEST_ROOT/umgpt-override-args")" == $'--model\ngpt-session-test\ntest prompt' ]] ||
   fail "run did not validate and pass an allowed U-M GPT model override"
 
 if CODEX_TEST_CODEX_ARGS="$TEST_ROOT/umgpt-rejected-args" \

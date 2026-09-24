@@ -1,34 +1,30 @@
 # Subscription identities
 
-Use `create-subscription` to keep each ChatGPT account or workspace login in
-its own `CODEX_HOME`. You can create as many identities as you need, including
-several with the same subscription type.
+Create a named **identity** for each ChatGPT account or workspace login. Each
+identity stores its configuration and login in a separate **home**
+(`CODEX_HOME`). Several identities can use the same subscription type.
 
-Choose names you will recognize, such as `personal`, `work`, or `edu`. These
-are local labels: the helper cannot check which plan or workspace you sign in to.
+Run the examples below from the clone directory after completing
+[Installation steps 1–3](../INSTALLATION.md#1-install-prerequisites).
 
 For a U-M GPT API key, follow the [U-M GPT gateway setup](umgpt.md). Toolkit
 API usage has [separate charges](umgpt.md#costs-and-spending-controls).
 
-After [installing prerequisites and cloning the repository](../INSTALLATION.md#1-install-prerequisites)
-(Installation steps 1–3), run the `./bin/codex-home` examples below from the clone directory.
-
 ## Choose clear local names
+
+Choose names you will recognize, such as `personal`, `work`, or `edu`. They
+appear in window titles and project files, so avoid personal names, study
+identifiers, and other sensitive details. These are local labels; the helper
+cannot check which plan or workspace you sign in to.
 
 `default` is reserved for the existing `~/.codex` home. Identity-creation
 commands do not overwrite it or any other existing identity.
 
-Create and sign in to as many additional identities as you need:
+Create an identity and sign in:
 
 ```bash
 ./bin/codex-home create-subscription personal
 ./bin/codex-home login personal
-
-./bin/codex-home create-subscription work
-./bin/codex-home login work
-
-./bin/codex-home create-subscription edu
-./bin/codex-home login edu
 ```
 
 Check the account and workspace in the browser before approving each login.
@@ -40,8 +36,6 @@ directory:
 
 ```text
 ~/.codex-homes/personal/auth.json
-~/.codex-homes/work/auth.json
-~/.codex-homes/edu/auth.json
 ```
 
 `auth.json` stores credentials in plain text. Keep each identity home private
@@ -52,35 +46,23 @@ helper cannot override them. See [OpenAI's credential-storage guidance](https://
 
 ## Verify each identity
 
-Check the identity's files without printing a token:
-
-```bash
-./bin/codex-home show personal
-./bin/codex-home show work
-./bin/codex-home doctor work
-```
-
-`show` reports local configuration and whether `auth.json` exists. `doctor`
-checks the configuration and may contact network services. Follow the
-[CLI and VS Code verification steps](commands.md#check-the-selected-identity)
-to check authentication and the active model; file presence and window labels
-alone do not verify the account.
+Follow [Check the selected identity](commands.md#check-the-selected-identity)
+for the CLI or VS Code. File presence and window labels alone do not verify
+the account. If configuration checks fail, use
+[Troubleshooting](troubleshooting.md).
 
 ## Add or separate more subscriptions
 
-Give each Business workspace or consulting account its own label, for example:
+Repeat the same two commands with a different name for each account or
+workspace, for example:
 
 ```bash
-./bin/codex-home create-subscription business-client-a
-./bin/codex-home login business-client-a
-
-./bin/codex-home create-subscription business-client-b
-./bin/codex-home login business-client-b
+./bin/codex-home create-subscription work
+./bin/codex-home login work
 ```
 
-Choose names that distinguish the account or workspace without exposing a
-person's name, study identifier, or other sensitive detail in window titles and
-generated project files.
+Names such as `business-client-a` and `business-client-b` can distinguish
+consulting accounts. Verify each login before assigning it to a project.
 
 ## Correct a login made with the wrong account
 
@@ -92,7 +74,7 @@ Log out of the affected identity and sign in again:
 ```
 
 This does not log out `default`, `personal`, `edu`, or any other separate
-identity.
+identity. Repeat the [identity checks](#verify-each-identity) after signing in.
 
 ## Identity homes and config profiles
 
@@ -106,11 +88,5 @@ Separate homes do not isolate processes or provide a security sandbox.
 
 Next, [assign the verified identity to a project](projects-vscode.md).
 
-Optionally, if you already have personal skills in `~/.codex/skills`, link them
-into your additional identities:
-
-```bash
-./bin/codex-home share-skills-all
-```
-
-See [Sharing skills](skills.md) for source requirements and discovery boundaries.
+To reuse personal skills from `~/.codex/skills`, follow
+[Sharing skills](skills.md).

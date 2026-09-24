@@ -141,14 +141,13 @@ left = section("2  Add ChatGPT accounts", [
      "<b>login status</b> checks the CLI auth method; identity names are local labels."),
 ], MARGIN, left)
 section("Or use the U-M GPT Toolkit", [
-    ("code", "codex-home create-umgpt\n"
-     "codex-home create-umgpt-low\n"
-     "codex-home set-key NAME"),
-    ("small", f"Models — repo: <b>config/umgpt-models.toml</b>; local: "
-     f"<b>~/.codex-homes/umgpt-models.toml</b>; live: <b>models NAME</b>. "
-     f"<b>reset-umgpt-defaults</b> adopts repo values. <b>umgpt-low</b> is "
-     f"<b>LOW-SENSITIVITY ONLY</b>. "
-     f"{link('Guide', 'docs/umgpt.md')}."),
+    ("code", "codex-home model-settings\n"
+     "codex-home create-umgpt\n"
+     "codex-home set-key umgpt"),
+    ("small", "For broader text models, use <b>create-umgpt-low</b> and "
+     "<b>set-key umgpt-low</b>: <b>LOW-SENSITIVITY ONLY</b>. "
+     f"Follow {link('U-M setup', 'docs/umgpt.md')} for discovery and the tool-call test. "
+     f"After setup, {link('change defaults and picker order', 'MODELS.md')}."),
 ], MARGIN, left)
 
 right = section("3  Select an identity for a project", [

@@ -1,54 +1,13 @@
 # Installation
 
-## Do I need administrator rights?
+Set up this computer in five steps: install prerequisites, enable project
+selection, clone the helper, create an identity, and assign it to a project.
+If the helper is already installed, skip to [identity setup](#4-configure-an-identity)
+or [project setup](#5-configure-a-project).
 
-**Not to use Codex Contexts.** Clone it into a directory you own and run it as
-your normal user. Administrator rights may be needed to install prerequisites.
-
-| Step | Administrator rights? |
-|---|---|
-| Clone, run tests, create identities, sign in, or store API keys | No, when using directories you own |
-| Edit shell hooks, approve `.envrc`, or configure a project | No; you need write access to your shell config and project |
-| Install or remove the Finder app and Quick Action in your home directory | No |
-| Install Homebrew on macOS | Usually yes for the initial installation; subsequent `brew install` commands run without `sudo` |
-| Install Debian/Ubuntu packages with `apt` | Yes, through `sudo` or your administrator |
-| Install Codex CLI or VS Code | Depends on the installation location; a system-wide install may need an administrator |
-
-On a managed computer, ask IT to install any missing prerequisites or provide
-an approved user installation. Once they are available, the helper uses your
-own home and project directories. Run `codex-home` and the Finder installer
-without `sudo` so files and credentials belong to your account. See
-[Homebrew's installation notes](https://docs.brew.sh/Installation) for its
-permissions requirements.
-
-## Recommended location
-
-On macOS or Linux, clone the repository into a stable, local development
-directory such as:
-
-```text
-~/Developer/codex-contexts
-```
-
-Keep the clone separate from `~/.codex` and `~/.codex-homes`, which hold private
-Codex data. Keep those identity directories outside Dropbox, iCloud Drive,
-OneDrive, shared drives, and Git repositories.
-
-A different local directory also works. Choose it before configuring projects:
-generated `.envrc` files contain absolute paths to the clone and identity home.
-If you move either directory, update those paths and run `direnv allow` again.
-For projects already in Git, setup excludes the generated `.envrc` and VS Code
-workspace through `.git/info/exclude`, without changing the shared `.gitignore`.
-
-## Machine-local setup
-
-On each computer, install the helper, sign in or add your API key, and configure
-your projects again. A clone contains only the source code. It does not bring
-across identities, credentials, sessions, logs, `direnv` approvals, VS Code
-data, skill links, or the Finder app.
-
-Use your own credentials. If a project includes an `.envrc` from another
-computer, read it and update its paths before approving it.
+Run the helper as your normal user. It needs no administrator rights when
+using directories you own; some prerequisites may require them. See
+[permissions and managed computers](#do-i-need-administrator-rights) if needed.
 
 ## 1. Install prerequisites
 
@@ -136,6 +95,27 @@ Install any missing command before running the tests.
 
 ## 3. Clone and validate
 
+### Recommended location
+
+On macOS or Linux, clone the repository into a stable, local development
+directory such as:
+
+```text
+~/Developer/codex-contexts
+```
+
+Keep the clone separate from `~/.codex` and `~/.codex-homes`, which hold private
+Codex data. Keep those identity directories outside Dropbox, iCloud Drive,
+OneDrive, shared drives, and Git repositories.
+
+A different local directory also works. Choose it before configuring projects:
+generated `.envrc` files contain absolute paths to the clone and identity home.
+If you move either directory, update those paths and run `direnv allow` again.
+For projects already in Git, setup excludes the generated `.envrc` and VS Code
+workspace through `.git/info/exclude`, without changing the shared `.gitignore`.
+
+### Clone and check the helper
+
 ```bash
 mkdir -p "$HOME/Developer"
 cd "$HOME/Developer"
@@ -149,6 +129,8 @@ The test prints a short start message and `All tests passed.` on success. It
 creates disposable identities in a temporary directory and uses mock commands;
 it does not need your credentials or contact a provider. If the final pass line
 does not appear, see [Troubleshooting](docs/troubleshooting.md).
+
+### Make the command available outside the clone
 
 Run examples beginning with `./bin/codex-home` from the clone directory.
 Examples using bare `codex-home` require its `bin` directory on `PATH`, either
@@ -167,39 +149,30 @@ entered at the prompt lasts only for the current shell; `cd` and
 
 ## 4. Configure an identity
 
-Choose the guide for the identity you need:
+An **identity** is a named Codex configuration stored in its own **home**
+(`CODEX_HOME`). Choose the guide for the account or provider you will use:
 
-- [ChatGPT subscription identities](docs/subscriptions.md)
-- [Responses-compatible API providers and Azure](docs/api-providers.md)
-- [Optional U-M GPT setup](docs/umgpt.md)
+| Sign-in method | Setup guide |
+|---|---|
+| ChatGPT account or workspace | [Subscription identities](docs/subscriptions.md) |
+| U-M GPT Toolkit API key | [U-M GPT](docs/umgpt.md) |
+| Another Responses-compatible API or direct Azure endpoint | [API providers](docs/api-providers.md) |
 
-After creating the identity, [verify its configuration and sign-in](docs/commands.md#check-the-selected-identity).
-Then [assign it to a project](docs/projects-vscode.md): generate the files,
-review them, approve `.envrc`, and launch. This selects the identity automatically
-for that project or opens a labeled VS Code window. On macOS, you can
-also install the optional [Finder Quick Action](docs/macos-open-with.md):
+Follow that guide through verification, then continue to project setup below.
+For an existing U-M identity, [Model settings and comparison](MODELS.md) covers
+changing defaults and model-picker order.
 
-```bash
-./bin/install-macos-open-with
-```
+## 5. Configure a project
 
-It installs `~/Applications/Codex Project.app` and
-`~/Library/Services/Open in Codex Project.workflow`. Right-click a project
-folder, then choose **Quick Actions > Open in Codex Project** (or **Services**
-on some macOS menus). The app opens the current context or offers setup,
-change, and removal. **Open With > Codex Project** is an additional route when
-Finder offers it for folders.
+A **project context** selects the identity used for a folder. Follow
+[Projects, direnv, and VS Code](docs/projects-vscode.md#generate-project-files)
+to generate the project files, review them, approve `.envrc`, and launch Codex.
+Choose the terminal or VS Code instructions there, then verify the active
+identity in the surface you use.
 
-On macOS, helper-launched VS Code instances have Dock hover names such as
-`VS Code - work` and `VS Code - default`. They keep the standard VS Code icon.
-See [macOS Dock names](docs/projects-vscode.md#macos-dock-names) for reopening,
-the restriction on directly launching or pinning editor copies, and the
-original-editor opt-out. After quitting, reopen a configured project through
-the Finder **Quick Actions > Open in Codex Project** action or `codex-home`.
-
-After project setup, enter the folder and run `codex-home run`. It uses the
-context selected by `direnv`; you do not need to type the identity name each
-time. Use `codex-home run NAME` to choose an identity explicitly.
+On macOS, you can also install the optional [Finder integration](docs/macos-open-with.md#install-the-finder-integration)
+to open configured projects by right-clicking a folder. The project guide
+explains [Dock identity labels and how to reopen a window](docs/projects-vscode.md#macos-dock-names).
 
 ## Updating this repository
 
@@ -216,23 +189,44 @@ git pull --ff-only
 An update does not rewrite existing identity homes or project `.envrc` files.
 Check the updated guides for setup changes before launching projects.
 
-If you installed the optional macOS Finder integration, reinstall it after
-updating so the application contains the current helper and the Quick Action
-points to that app:
+If you installed the macOS Finder integration, [reinstall it](docs/macos-open-with.md#install-the-finder-integration)
+after updating so its app and Quick Action use the current helper. Keep any
+custom `CODEX_MACOS_APP_DIR` and `CODEX_MACOS_SERVICES_DIR` values when
+reinstalling or uninstalling.
 
-```bash
-./bin/install-macos-open-with
-```
+For removal, choose the scope you need:
 
-To remove the Finder integration later, run:
+- [Remove Codex settings from one folder](docs/remove-folder-context.md).
+- [Remove extra VS Code entries from Open With](docs/macos-open-with.md#remove-extra-vs-code-entries-from-open-with-on-macos).
+- [Uninstall the Finder app, Quick Action, and generated launchers](docs/macos-open-with.md#uninstall-the-finder-integration).
 
-```bash
-./bin/uninstall-macos-open-with
-```
+## Machine-local setup
 
-This moves the app and its owned Quick Action to Trash without changing folder
-contexts or Codex identity homes. Previous installation backups remain
-available. If you customized `CODEX_MACOS_APP_DIR` or `CODEX_MACOS_SERVICES_DIR`,
-use the same values for reinstalling and uninstalling. See the
-[Finder integration guide](docs/macos-open-with.md) for changing or removing a
-folder context and for complete cleanup details.
+On each computer, install the helper, sign in or add your API key, and configure
+your projects again. A clone contains only the source code. It does not bring
+across identities, credentials, sessions, logs, `direnv` approvals, VS Code
+data, skill links, or the Finder app.
+
+Use your own credentials. If a project includes an `.envrc` from another
+computer, read it and update its paths before approving it.
+
+## Do I need administrator rights?
+
+**Not to use Codex Contexts.** Clone it into a directory you own and run it as
+your normal user. Administrator rights may be needed to install prerequisites.
+
+| Step | Administrator rights? |
+|---|---|
+| Clone, run tests, create identities, sign in, or store API keys | No, when using directories you own |
+| Edit shell hooks, approve `.envrc`, or configure a project | No; you need write access to your shell config and project |
+| Install or remove the Finder app and Quick Action in your home directory | No |
+| Install Homebrew on macOS | Usually yes for the initial installation; subsequent `brew install` commands run without `sudo` |
+| Install Debian/Ubuntu packages with `apt` | Yes, through `sudo` or your administrator |
+| Install Codex CLI or VS Code | Depends on the installation location; a system-wide install may need an administrator |
+
+On a managed computer, ask IT to install any missing prerequisites or provide
+an approved user installation. Once they are available, the helper uses your
+own home and project directories. Run `codex-home` and the Finder installer
+without `sudo` so files and credentials belong to your account. See
+[Homebrew's installation notes](https://docs.brew.sh/Installation) for its
+permissions requirements.

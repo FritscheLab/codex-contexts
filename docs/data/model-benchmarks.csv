@@ -1,0 +1,15 @@
+model_id,label,reasoning,index_version,score,benchmark_status,output_tokens_per_second,direct_input_usd_per_million,direct_output_usd_per_million,price_adjustment_percent,repository_default,checked_date,benchmark_source,direct_price_source,adjustment_source
+gpt-6-luna,GPT-6 Luna,Medium,4.3.2,29,evaluated,142.8,0.10,0.50,0,umgpt;umgpt-low,2026-09-24,https://artificialanalysis.ai/models/gpt-6-luna-medium,https://developers.openai.com/api/docs/pricing,
+gpt-6-sol,GPT-6 Sol,Medium,4.3.2,40,evaluated,114.3,2.00,10.00,0,,2026-09-24,https://artificialanalysis.ai/models/gpt-6-sol-medium,https://developers.openai.com/api/docs/pricing,
+gpt-6-astra,GPT-6 Astra,Medium,4.3.2,50,evaluated,45.3,10.00,50.00,0,,2026-09-24,https://artificialanalysis.ai/models/gpt-6-astra-medium,https://developers.openai.com/api/docs/pricing,
+claude-haiku-4-5,Claude Haiku 4.5,Reasoning enabled,4.3.2,17,evaluated,96.1,1.00,5.00,0,,2026-09-24,https://artificialanalysis.ai/models/claude-4-5-haiku-reasoning,https://platform.claude.com/docs/en/about-claude/pricing,
+claude-sonnet-5,Claude Sonnet 5,"Adaptive, medium",4.3.2,28,evaluated,67.1,2.00,10.00,0,,2026-09-24,https://artificialanalysis.ai/models/claude-sonnet-5-medium,https://platform.claude.com/docs/en/about-claude/pricing,
+claude-sonnet-5,Claude Sonnet 5,"Adaptive, high",4.3.2,32,evaluated,65.4,2.00,10.00,0,,2026-09-24,https://artificialanalysis.ai/models/claude-sonnet-5-high,https://platform.claude.com/docs/en/about-claude/pricing,
+claude-opus-5-5,Claude Opus 5.5,"Adaptive, medium, default fallback",4.3.2,51,evaluated,77.9,4.00,20.00,10,,2026-09-24,https://artificialanalysis.ai/models/claude-opus-5-5-medium,https://platform.claude.com/docs/en/about-claude/pricing,https://its.umich.edu/computing/ai/pricing
+claude-fable-5-1,Claude Fable 5.1,"Adaptive, medium, default fallback",4.3.2,49,evaluated,54.1,10.00,50.00,0,,2026-09-24,https://artificialanalysis.ai/models/claude-fable-5-1-medium/,https://platform.claude.com/docs/en/about-claude/pricing,
+gemini-3.8-flash,Gemini 3.8 Flash,Medium,4.3.2,40,evaluated,,0.75,3.75,0,,2026-09-24,https://artificialanalysis.ai/models/gemini-3-8-flash-medium,https://ai.google.dev/gemini-api/docs/pricing,
+deepseek-v4-flash-0731,DeepSeek V4 Flash 0731,Max,4.3.2,34,evaluated,221.1,0.14,0.28,0,,2026-09-24,https://artificialanalysis.ai/models/deepseek-v4-flash,https://www.together.ai/pricing,
+kimi-k3,Kimi K3,Max,4.3.2,44,evaluated,35.3,3.00,15.00,0,,2026-09-24,https://artificialanalysis.ai/models/kimi-k3,https://www.together.ai/pricing,
+kimi-k2.5,Kimi K2.5,Reasoning enabled,4.3.2,23,estimated,,0.60,3.00,0,,2026-09-24,https://artificialanalysis.ai/models/kimi-k2-5,https://novita.ai/console/pricing-console,
+Llama-4-Maverick-17B-128E-Instruct-FP8,Llama 4 Maverick,Non-reasoning,4.3.2,10,estimated,114.9,0.20,0.80,0,,2026-09-24,https://artificialanalysis.ai/models/llama-4-maverick,https://deepinfra.com/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8,
+Llama-4-Scout-17B-16E-Instruct,Llama 4 Scout,Non-reasoning,4.3.2,8,estimated,100.1,0.10,0.30,0,,2026-09-24,https://artificialanalysis.ai/models/llama-4-scout/,https://deepinfra.com/meta-llama/Llama-4-Scout-17B-16E-Instruct,
