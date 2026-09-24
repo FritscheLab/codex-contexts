@@ -39,15 +39,16 @@ copies under `$CODEX_HOME/vscode-editor/`; hover over a running icon to read
 colors also identify the context.
 
 Quit the intended identity and reopen its project through the helper, Finder's
-**Open With > VS Code - NAME** handler, or the **Codex Project** Quick Action.
-Each named Finder handler checks that the folder's `.envrc` selects the same
-identity before opening it. If `CODEX_VSCODE_DOCK_LABEL=0` is set, the helper
+**Open in Codex Project** Quick Action/Service, or a file manager's
+**Open With > VS Code - NAME** handler. The identity-specific handler checks
+that the folder's `.envrc` selects the same identity before opening it. If
+`CODEX_VSCODE_DOCK_LABEL=0` is set, the helper
 uses the original installed editor without the named editor copy. An
 already-running identity keeps its original application until it quits.
 
 Clicking a running Dock icon focuses that editor. **After quitting, use
-Finder > Quick Actions > Open in Codex Project, Open With > VS Code - NAME,
-or `codex-home vscode`.** Do not pin or directly launch the generated editor
+Finder > Quick Actions > Open in Codex Project, a file manager's Open With
+> VS Code - NAME, or `codex-home vscode`.** Do not pin or directly launch the generated editor
 copies under the identity home: a direct macOS launch does not supply the
 identity environment and isolated user-data arguments.
 

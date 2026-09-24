@@ -33,14 +33,14 @@ The bundled helper opens a named copy of VS Code for each identity, such as
 `VS Code - work` or `VS Code - default`. Hover over its running Dock icon to
 read the identity, or click it to focus the editor. Projects using a running
 identity are sent to that instance. The installer also creates identity-specific
-Finder handlers named `VS Code - NAME`. Choose **Open With > VS Code - NAME** to
-open a folder through the matching identity. The folder must have an approved
+app handlers named `VS Code - NAME` for file managers that expose folder handlers
+in an **Open With** menu, such as ForkLift. The folder must have an approved
 `.envrc` selecting that identity and its generated workspace. If it selects a
 different identity, the handler reports the mismatch instead of opening the
-wrong account. Use **Codex Project** when you need to set up or change a folder
-context. Do not pin or directly relaunch the generated editor copies under
-`~/.codex-homes`; those copies need the helper's environment and launch
-arguments. See
+wrong account. Finder exposes folder actions through **Quick Actions** and
+**Services**; use **Open in Codex Project** there. Do not pin or directly
+relaunch the generated editor copies under `~/.codex-homes`; those copies need
+the helper's environment and launch arguments. See
 [macOS Dock names](projects-vscode.md#macos-dock-names) for copy refresh and
 the original-editor opt-out.
 
@@ -72,13 +72,16 @@ In Finder:
    folder, choose an identity directly.
 
 You can also select a folder and use **Finder > Services > Open in Codex
-Project**. If **Open With > Codex Project** is available, it opens the same app;
-folder context menus do not consistently offer that route. Do not choose
-**Change All**; Finder should remain the normal default handler for folders.
+Project**. In Finder, this is the supported folder route; the app offers the
+current context and setup/change actions. File managers such as ForkLift may
+also expose **Open With > VS Code - NAME** for a direct identity-specific
+launch. Do not choose **Change All**; Finder should remain the normal default
+handler for folders.
 
-For an already configured project, **Open With > VS Code - NAME** routes the
-folder through the matching identity. The handler passes it to `codex-home`,
-which opens the project workspace and uses the named Dock instance.
+In file managers that provide an **Open With** menu for folders, choose
+**VS Code - NAME** to route an already configured project through that
+identity. The handler passes it to `codex-home`, which opens the project
+workspace and uses the named Dock instance.
 
 When the folder has no `.envrc`, the app goes straight to identity selection.
 When it is already configured, the menu offers:

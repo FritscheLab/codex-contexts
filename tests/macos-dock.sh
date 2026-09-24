@@ -3,6 +3,8 @@
 set -euo pipefail
 [[ "$(uname -s)" == Darwin ]] || exit 0
 DOCK_TEST_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$DOCK_TEST_REPO/tests/common.sh"
+DOCK_TEST_TOOL="$(resolve_codex_home_tool "$DOCK_TEST_REPO/bin")"
 DOCK_TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-dock-test.XXXXXX")"
 DOCK_TEST_ROOT="$(cd "$DOCK_TEST_ROOT" && pwd -P)"
 trap 'rm -rf -- "$DOCK_TEST_ROOT"' EXIT
@@ -13,7 +15,7 @@ export CODEX_SKILLS_SOURCE="$DOCK_TEST_ROOT/empty-skills"
 export CODEX_VSCODE_DOCK_LABEL=1
 export CODEX_MACOS_SKIP_REGISTER=1
 unset CODEX_HOME CODEX_IDENTITY DIRENV_DIFF DIRENV_DIR DIRENV_FILE DIRENV_WATCHES
-source "$DOCK_TEST_REPO/bin/codex-home"
+source "$DOCK_TEST_TOOL"
 
 fail() { printf 'Dock test failure: %s\n' "$*" >&2; exit 1; }
 quiet_check() {
@@ -81,12 +83,12 @@ prepare_macos_vscode_editor dock-unit "$unit_home" "$fake_executable" >/dev/null
 [[ "$(stat -f %i "$app")" == "$inode" ]] || fail 'rebuilt an unchanged editor'
 
 # Both cold and warm launches use the complete named bundle's CLI.
-quiet_check "$DOCK_TEST_REPO/bin/codex-home" vscode dock-unit "$project_one" >/dev/null
+quiet_check "$DOCK_TEST_TOOL" vscode dock-unit "$project_one" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$named_cli" ]] || fail 'cold launch bypassed named CLI'
 grep -Fxq -- "$project_one/.vscode/project \$one [x].code-workspace" "$CODEX_DOCK_TEST_ARGS" || fail 'project path was split or expanded'
 grep -Fxq -- "$unit_home|dock-unit|synthetic-not-for-bundle" "$CODEX_DOCK_TEST_ENV" || fail 'wrong identity environment'
 printf '%s' "$$" >"$unit_home/vscode-user-data/code.lock"
-quiet_check "$DOCK_TEST_REPO/bin/codex-home" vscode dock-unit "$project_two" >/dev/null
+quiet_check "$DOCK_TEST_TOOL" vscode dock-unit "$project_two" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$named_cli" ]] || fail 'warm launch bypassed named CLI'
 
 # A live/reused PID only defers refresh; it never switches launch routing.
@@ -95,7 +97,7 @@ prepare_macos_vscode_editor dock-unit "$unit_home" "$fake_executable" \
   >/dev/null 2>"$DOCK_TEST_ROOT/pending"
 grep -Fq 'update pending' "$DOCK_TEST_ROOT/pending" || fail 'running update was not reported'
 [[ "$(stat -f %i "$app")" == "$inode" ]] || fail 'replaced a running editor'
-quiet_check "$DOCK_TEST_REPO/bin/codex-home" vscode dock-unit "$project_one" >/dev/null
+quiet_check "$DOCK_TEST_TOOL" vscode dock-unit "$project_one" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$named_cli" ]] || fail 'pending update changed launch route'
 printf 'not-a-pid' >"$unit_home/vscode-user-data/code.lock"
 if macos_vscode_is_running "$unit_home/vscode-user-data"; then fail 'accepted invalid PID'; fi
@@ -142,22 +144,22 @@ if (
 [[ "$(stat -f %i "$app")" == "$inode" ]] || fail 'failed installation did not restore previous app'
 prepare_macos_vscode_editor dock-unit "$unit_home" "$fake_executable" >/dev/null
 
-quiet_check env CODEX_VSCODE_DOCK_LABEL=0 "$DOCK_TEST_REPO/bin/codex-home" vscode dock-unit "$project_one" >/dev/null
+quiet_check env CODEX_VSCODE_DOCK_LABEL=0 "$DOCK_TEST_TOOL" vscode dock-unit "$project_one" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$CODEX_VSCODE_CLI" ]] || fail 'CLI opt-out was ignored'
 
 # Saved-project invocations use the named editor's CLI.
 printf '%s\n' "$project_two" >"$DOCK_TEST_ROOT/legacy-last-project"
-quiet_check "$DOCK_TEST_REPO/bin/codex-home" _vscode-dock dock-unit "$DOCK_TEST_ROOT/legacy-last-project" >/dev/null
+quiet_check "$DOCK_TEST_TOOL" _vscode-dock dock-unit "$DOCK_TEST_ROOT/legacy-last-project" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$named_cli" ]] || fail '_vscode-dock bypassed named CLI'
 
 # Invalid/missing environments fail before any editor CLI can run.
 direnv deny "$project_two" >/dev/null 2>&1
 rm "$CODEX_DOCK_TEST_ARGS"
-if "$DOCK_TEST_REPO/bin/codex-home" vscode dock-unit "$project_two" >/dev/null 2>&1; then fail 'opened denied project'; fi
+if "$DOCK_TEST_TOOL" vscode dock-unit "$project_two" >/dev/null 2>&1; then fail 'opened denied project'; fi
 [[ ! -e "$CODEX_DOCK_TEST_ARGS" ]] || fail 'launched denied project'
 mv "$project_two/.envrc" "$project_two/.envrc.saved"
 if CODEX_IDENTITY=dock-unit CODEX_HOME="$unit_home" \
-  "$DOCK_TEST_REPO/bin/codex-home" vscode dock-unit "$project_two" >/dev/null 2>&1; then fail 'accepted inherited identity without envrc'; fi
+  "$DOCK_TEST_TOOL" vscode dock-unit "$project_two" >/dev/null 2>&1; then fail 'accepted inherited identity without envrc'; fi
 [[ ! -e "$CODEX_DOCK_TEST_ARGS" ]] || fail 'launched missing environment'
 
 # Refuse unowned destinations and symlinked ownership files.

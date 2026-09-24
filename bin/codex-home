@@ -319,7 +319,7 @@ umgpt_models_file_value() {
 
 umgpt_repository_default_model() {
   local scope="$1"
-  local key model
+  local key
   [[ -f "$UMGPT_REPOSITORY_MODELS_FILE" ]] ||
     die "repository U-M GPT defaults not found: $UMGPT_REPOSITORY_MODELS_FILE"
   case "$scope" in
@@ -327,15 +327,14 @@ umgpt_repository_default_model() {
     low-sensitivity) key="umgpt_low" ;;
     *) die "unknown U-M GPT model scope: $scope" ;;
   esac
-  model="$(umgpt_models_file_value "$UMGPT_REPOSITORY_MODELS_FILE" "$key")"
-  printf '%s\n' "$model"
+  umgpt_models_file_value "$UMGPT_REPOSITORY_MODELS_FILE" "$key"
 }
 
 ensure_umgpt_models_file() {
   local openai_model low_model home candidate base_url
   if [[ ! -e "$UMGPT_MODELS_FILE" ]]; then
-    openai_model="$(umgpt_repository_default_model "openai-only")"
-    low_model="$(umgpt_repository_default_model "low-sensitivity")"
+    openai_model="$(umgpt_repository_default_model "openai-only")" || return
+    low_model="$(umgpt_repository_default_model "low-sensitivity")" || return
     home="$(identity_home "umgpt")"
     if [[ -f "$home/config.toml" ]]; then
       candidate="$(config_value "$home/config.toml" "model")"
@@ -362,15 +361,14 @@ ensure_umgpt_models_file() {
 
 umgpt_default_model() {
   local scope="$1"
-  local key model
-  ensure_umgpt_models_file
+  local key
+  ensure_umgpt_models_file || return
   case "$scope" in
     openai-only) key="umgpt" ;;
     low-sensitivity) key="umgpt_low" ;;
     *) die "unknown U-M GPT model scope: $scope" ;;
   esac
-  model="$(umgpt_models_file_value "$UMGPT_MODELS_FILE" "$key")"
-  printf '%s\n' "$model"
+  umgpt_models_file_value "$UMGPT_MODELS_FILE" "$key"
 }
 
 replace_identity_model() {
@@ -624,6 +622,9 @@ create_umgpt() {
   fi
   local name="${2:-umgpt}"
   validate_umgpt_model "openai-only" "$model"
+  if [[ "$name" == "umgpt" && "$explicit" -eq 1 && -e "$UMGPT_MODELS_FILE" ]]; then
+    umgpt_models_file_value "$UMGPT_MODELS_FILE" umgpt >/dev/null || return
+  fi
   create_api_identity \
     "$name" \
     "$UMGPT_BASE_URL" \
@@ -649,6 +650,9 @@ create_umgpt_low() {
   fi
   local name="${2:-umgpt-low}"
   validate_umgpt_model "low-sensitivity" "$model"
+  if [[ "$name" == "umgpt-low" && "$explicit" -eq 1 && -e "$UMGPT_MODELS_FILE" ]]; then
+    umgpt_models_file_value "$UMGPT_MODELS_FILE" umgpt_low >/dev/null || return
+  fi
   create_api_identity \
     "$name" \
     "$UMGPT_BASE_URL" \
@@ -673,7 +677,8 @@ config_values() {
 }
 
 config_value() {
-  config_values "$1" "$2" | head -n 1
+  # Drain the producer so large configs cannot fail with SIGPIPE under pipefail.
+  config_values "$1" "$2" | sed -n '1p'
 }
 
 set_umgpt_scope() {
@@ -744,16 +749,18 @@ load_secret_env() {
 fetch_model_ids() {
   local base_url="$1"
   local api_key="$2"
-  local url response ids status
+  local url quoted_url quoted_header response ids status
 
   command -v curl >/dev/null 2>&1 || die "curl is required for model discovery"
   command -v jq >/dev/null 2>&1 || die "jq is required for model discovery"
   url="${base_url%/}/models"
+  quoted_url="$(curl_config_quote "$url")" || return
+  quoted_header="$(curl_config_quote "Authorization: Bearer $api_key")" || return
 
   response="$(
     {
-      printf 'url = %s\n' "$(curl_config_quote "$url")"
-      printf 'header = %s\n' "$(curl_config_quote "Authorization: Bearer $api_key")"
+      printf 'url = %s\n' "$quoted_url"
+      printf 'header = %s\n' "$quoted_header"
       printf '%s\n' 'silent' 'show-error' 'fail-with-body'
     } | curl --config -
   )" || {
@@ -1822,8 +1829,8 @@ ensure_macos_vscode_open_with() (
   local plist_buddy="/usr/libexec/PlistBuddy"
   local runtime_app="$home/vscode-editor/VS Code - $name.app"
   [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" ]] || return 0
-  app_dir="$HOME/Applications"
-  app="$(macos_vscode_open_with_path "$name")"
+  app="$(macos_vscode_open_with_path "$name")" || die "could not determine the VS Code Finder app path"
+  app_dir="$(dirname "$app")"
   source="$SCRIPT_DIR/VSCodeIdentity.applescript"
   [[ -f "$source" ]] || source="$REPOSITORY_ROOT/macos/VSCodeIdentity.applescript"
   [[ -f "$source" ]] || die "missing the VS Code Finder handler source"
@@ -1832,7 +1839,7 @@ ensure_macos_vscode_open_with() (
   [[ -x /usr/bin/codesign && -x "$plist_buddy" ]] || die "required macOS application tools were not found"
   [[ ! -L "$app_dir" ]] || die "refusing a symbolic link at $app_dir"
   mkdir -p "$app_dir" || die "could not create $app_dir"
-  app_dir="$(cd "$app_dir" && pwd -P)"
+  app_dir="$(cd "$app_dir" && pwd -P)" || die "could not open $app_dir"
   app="$app_dir/VS Code - $name.app"
   [[ ! -L "$app" ]] || die "refusing a symbolic link at $app"
   metadata="$(shasum -a 256 "$source" "$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")" "$SCRIPT_DIR/../config/umgpt-models.toml")" || return 1
@@ -1850,40 +1857,52 @@ ensure_macos_vscode_open_with() (
   build="$(mktemp -d "$app_dir/.vscode-open-with.XXXXXX")" || die "could not stage the VS Code Finder app"
   cleanup_vscode_open_with() {
     local status=$?
-    if [[ "$status" -ne 0 && -d "$build/previous.app" && ! -e "$app" ]]; then
+    if [[ "$status" -ne 0 && -d "$build/previous.app" && ! -e "$app" && ! -L "$app" ]]; then
       mv "$build/previous.app" "$app" || true
     fi
-    rm -rf -- "$build"
+    if [[ "$status" -ne 0 && -e "$build/previous.app" ]]; then
+      printf 'Previous Finder app preserved at %s; restore it to %s after resolving the installation failure.\n' \
+        "$build/previous.app" "$app" >&2
+    else
+      rm -rf -- "$build"
+    fi
     return "$status"
   }
-  trap cleanup_vscode_open_with EXIT HUP INT TERM
+  trap cleanup_vscode_open_with EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   candidate="$build/VS Code - $name.app"
   osacompile -o "$candidate" "$source" || die "could not compile the VS Code Finder app"
-  mkdir -p "$candidate/Contents/config"
-  cp "$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")" "$candidate/Contents/Resources/codex-home"
-  cp "$SCRIPT_DIR/VSCodeIdentity.applescript" "$candidate/Contents/Resources/VSCodeIdentity.applescript" 2>/dev/null || \
-    cp "$REPOSITORY_ROOT/macos/VSCodeIdentity.applescript" "$candidate/Contents/Resources/VSCodeIdentity.applescript"
-  cp "$SCRIPT_DIR/../config/umgpt-models.toml" "$candidate/Contents/config/umgpt-models.toml"
-  printf '%s\n' "$name" >"$candidate/Contents/Resources/identity"
-  printf '%s\n' "$metadata" >"$candidate/Contents/Resources/codex-contexts-open-with"
+  # Callers may handle failure with ||, which disables Bash's errexit here.
+  mkdir -p "$candidate/Contents/config" || die "could not create the Finder app config directory"
+  cp "$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")" "$candidate/Contents/Resources/codex-home" ||
+    die "could not bundle the Finder app helper"
+  cp "$source" "$candidate/Contents/Resources/VSCodeIdentity.applescript" ||
+    die "could not bundle the Finder handler source"
+  cp "$SCRIPT_DIR/../config/umgpt-models.toml" "$candidate/Contents/config/umgpt-models.toml" ||
+    die "could not bundle the U-M GPT model defaults"
+  printf '%s\n' "$name" >"$candidate/Contents/Resources/identity" || die "could not record the Finder app identity"
+  printf '%s\n' "$metadata" >"$candidate/Contents/Resources/codex-contexts-open-with" ||
+    die "could not record the Finder app ownership marker"
   info_plist="$candidate/Contents/Info.plist"
   "$plist_buddy" -c 'Delete :CFBundleIdentifier' "$info_plist" >/dev/null 2>&1 || true
-  "$plist_buddy" -c "Add :CFBundleIdentifier string org.codex-contexts.vscode.$name" "$info_plist"
+  "$plist_buddy" -c "Add :CFBundleIdentifier string org.codex-contexts.vscode.$name" "$info_plist" || die "could not configure the Finder app identifier"
   "$plist_buddy" -c 'Delete :CFBundleName' "$info_plist" >/dev/null 2>&1 || true
-  "$plist_buddy" -c "Add :CFBundleName string VS Code - $name" "$info_plist"
+  "$plist_buddy" -c "Add :CFBundleName string VS Code - $name" "$info_plist" || die "could not configure the Finder app name"
   "$plist_buddy" -c 'Delete :CFBundleDisplayName' "$info_plist" >/dev/null 2>&1 || true
-  "$plist_buddy" -c "Add :CFBundleDisplayName string VS Code - $name" "$info_plist"
+  "$plist_buddy" -c "Add :CFBundleDisplayName string VS Code - $name" "$info_plist" || die "could not configure the Finder app display name"
   "$plist_buddy" -c 'Delete :LSUIElement' "$info_plist" >/dev/null 2>&1 || true
-  "$plist_buddy" -c 'Add :LSUIElement bool true' "$info_plist"
+  "$plist_buddy" -c 'Add :LSUIElement bool true' "$info_plist" || die "could not configure the Finder app UI behavior"
   "$plist_buddy" -c 'Delete :CFBundleDocumentTypes' "$info_plist" >/dev/null 2>&1 || true
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes array' "$info_plist"
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0 dict' "$info_plist"
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:CFBundleTypeName string Folder' "$info_plist"
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Editor' "$info_plist"
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:LSHandlerRank string Alternate' "$info_plist"
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:LSItemContentTypes array' "$info_plist"
-  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:LSItemContentTypes:0 string public.folder' "$info_plist"
-  chmod 700 "$candidate/Contents/Resources/codex-home"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes array' "$info_plist" || die "could not configure Finder document types"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0 dict' "$info_plist" || die "could not configure the Finder folder handler"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:CFBundleTypeName string Folder' "$info_plist" || die "could not configure the Finder folder type"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Editor' "$info_plist" || die "could not configure the Finder folder role"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:LSHandlerRank string Alternate' "$info_plist" || die "could not configure the Finder handler rank"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:LSItemContentTypes array' "$info_plist" || die "could not configure Finder content types"
+  "$plist_buddy" -c 'Add :CFBundleDocumentTypes:0:LSItemContentTypes:0 string public.folder' "$info_plist" || die "could not configure the Finder folder content type"
+  chmod 700 "$candidate/Contents/Resources/codex-home" || die "could not make the Finder app helper executable"
   /usr/bin/codesign --force --deep --sign - "$candidate" >/dev/null || die "could not sign the VS Code Finder app"
   macos_vscode_unregister_editor "$runtime_app"
   if [[ -e "$app" ]]; then mv "$app" "$build/previous.app" || die "could not stage the old VS Code Finder app"; fi

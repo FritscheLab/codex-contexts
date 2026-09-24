@@ -23,6 +23,12 @@ Follow [INSTALLATION.md](INSTALLATION.md), then run:
 Keep the helper compatible with Bash 3.2, including the system Bash on macOS.
 The default tests must run without credentials or a live provider.
 
+For focused checks, run `bash tests/identity-config.sh` for malformed defaults,
+large configurations, and model-request validation. On macOS,
+`bash tests/macos-open-with.sh` checks Finder app installation failures and
+backup recovery using temporary apps and intercepted registration calls. Both
+are included in `./tests/test.sh`.
+
 The [CI workflow](.github/workflows/ci.yml) runs offline tests with command
 mocks on Linux and macOS. It does not install Codex or validate configuration
 against a real Codex release. With Codex installed, you can opt into doctor

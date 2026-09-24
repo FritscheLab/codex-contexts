@@ -3,12 +3,14 @@
 set -euo pipefail
 
 FILES_TEST_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$FILES_TEST_REPO/tests/common.sh"
+FILES_TEST_TOOL="$(resolve_codex_home_tool "$FILES_TEST_REPO/bin")"
 FILES_TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-project-files.XXXXXX")"
 FILES_TEST_ROOT="$(cd "$FILES_TEST_ROOT" && pwd -P)"
 trap 'rm -rf -- "$FILES_TEST_ROOT"' EXIT
 export CODEX_HOMES_ROOT="$FILES_TEST_ROOT/identity homes"
 unset CODEX_HOME CODEX_IDENTITY DIRENV_DIFF DIRENV_DIR DIRENV_FILE DIRENV_WATCHES
-source "$FILES_TEST_REPO/bin/codex-home"
+source "$FILES_TEST_TOOL"
 
 fail() { printf 'Project files test failure: %s\n' "$*" >&2; exit 1; }
 expect_failure() {

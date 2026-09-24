@@ -267,20 +267,21 @@ the source application. Where cloning is unavailable, macOS makes a normal
 copy, which can use a full application's worth of storage per identity. The
 original VS Code installation remains available for ordinary use.
 
-On macOS, the Finder installer creates a small handler app at
-`~/Applications/VS Code - NAME.app` for each configured identity. It appears in
-**Open With** and forwards the selected folder to `codex-home vscode NAME`.
-The actual editor copy remains under `CODEX_HOME/vscode-editor`, where the
-helper keeps its separate Dock name without registering it as a direct folder
-opener.
+On macOS, the Finder integration creates a small handler app at
+`~/Applications/VS Code - NAME.app` for each configured identity. File managers
+that expose folder handlers in an **Open With** menu, such as ForkLift, can use
+it to forward the folder to `codex-home vscode NAME`. In Finder, use **Quick
+Actions > Open in Codex Project** or **Services > Open in Codex Project**; that
+app reads the folder's current context. The actual editor copy remains under
+`CODEX_HOME/vscode-editor` and keeps its separate Dock name.
 
 Hover over a running editor's Dock icon to read its identity. Clicking that
 running icon focuses the editor. The icon artwork remains VS Code's, while
 the workspace title and status-bar color also identify the selected context.
 
-**After quitting, start the identity through the Finder Quick Action, its
-matching Open With entry, or `codex-home`.** Do not pin or directly open the
-generated editor copies: macOS launches them without the helper's
+**After quitting, start the identity through the Finder Quick Action, a
+file-manager Open With handler, or `codex-home`.** Do not pin or directly open
+the generated editor copies: macOS launches them without the helper's
 `CODEX_HOME`, approved environment, or `--user-data-dir` arguments.
 
 Update the original VS Code installation and let the helper refresh its

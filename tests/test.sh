@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$ROOT/tests/common.sh"
 
 fail() {
   printf 'test failure: %s\n' "$*" >&2
@@ -87,6 +88,9 @@ export DIRENV_LOG_FORMAT=""
 export XDG_DATA_HOME="$TEST_ROOT/xdg-data"
 export CODEX_HOMES_ROOT="$TEST_ROOT/codex-homes"
 export CODEX_MACOS_SKIP_REGISTER=1
+# Keep caller overrides from selecting real settings, skills, or an editor.
+unset CODEX_UMGPT_MODELS_FILE CODEX_SKILLS_SOURCE CODEX_VSCODE_CLI \
+  CODEX_VSCODE_EXTENSIONS_DIR CODEX_VSCODE_DOCK_LABEL
 # Do not let the caller's direnv state restore its PATH over our mock commands.
 unset DIRENV_DIFF DIRENV_DIR DIRENV_FILE DIRENV_WATCHES
 mkdir -p "$HOME" "$DIRENV_CONFIG" "$TEST_ROOT/project" "$TEST_ROOT/offline-bin"
@@ -110,7 +114,12 @@ else
   printf 'Running offline tests with temporary identities and mock commands.\n'
 fi
 
-TOOL="$ROOT/bin/codex-home"
+TOOL="$(resolve_codex_home_tool "$ROOT/bin")"
+RENAMED_TOOL_DIR="$TEST_ROOT/renamed-bin"
+mkdir -p "$RENAMED_TOOL_DIR"
+ln -s "$TOOL" "$RENAMED_TOOL_DIR/code-home"
+[[ "$(resolve_codex_home_tool "$RENAMED_TOOL_DIR")" == "$RENAMED_TOOL_DIR/code-home" ]] ||
+  fail "test tool resolver did not follow an executable rename"
 
 default_current="$(env -u CODEX_HOME -u CODEX_IDENTITY "$TOOL" current)"
 grep -q 'Codex identity : DEFAULT (~/.codex)' <<< "$default_current"
@@ -928,11 +937,13 @@ review_snapshot_path="$(tail -n 1 "$TEST_ROOT/code-review-args")"
 [[ ! -e "$review_snapshot_path" ]] ||
   fail "project-review left its temporary snapshot behind"
 
+bash "$ROOT/tests/identity-config.sh"
 bash "$ROOT/tests/project-files.sh"
 bash "$ROOT/tests/project-launch.sh"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
   bash "$ROOT/tests/macos-dock.sh"
+  bash "$ROOT/tests/macos-open-with.sh"
   CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
     CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/services" \
     CODEX_MACOS_SKIP_REGISTER=1 \
