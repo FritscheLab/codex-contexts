@@ -68,41 +68,35 @@ on configureProject(launcherPath, folderPath, replacingContext)
 
 	my runCommand({launcherPath, setupCommandName, identityName, folderPath})
 
-	if not my reviewAndApproveProject(launcherPath, folderPath, identityName) then
-		«event sysodlog» "The project files are configured, but .envrc is not approved. Review and approve it with direnv before choosing Open with current Codex context." given «class appr»:"Setup Paused", «class btns»:{"OK"}, «class dflt»:"OK"
+	if not my approveProject(launcherPath, folderPath, identityName) then
+		«event sysodlog» "The project files are configured, but .envrc is not approved. Approve it with direnv before choosing Open with current Codex context." given «class appr»:"Setup Paused", «class btns»:{"OK"}, «class dflt»:"OK"
 		return false
 	end if
 	return true
 end configureProject
 
-on reviewAndApproveProject(launcherPath, folderPath, identityName)
+on approveProject(launcherPath, folderPath, identityName)
 	set projectName to «event sysoexec» "/usr/bin/basename " & quoted form of folderPath
-	set hasReviewed to false
+	set approvalMessage to "Project: " & projectName & return & "Identity: " & identityName & return & "File: .envrc" & return & return & "Approve & Open lets direnv execute the generated file and opens VS Code with this identity. Review in VS Code lets you inspect a read-only copy first. Credentials remain in the identity home."
 
 	repeat
-		if hasReviewed then
-			set reviewMessage to "Review completed." & return & return & "Project: " & projectName & return & "Identity: " & identityName & return & "File: .envrc" & return & return & "Approve & Open lets direnv execute this file and opens VS Code with this identity. Credentials remain in the identity home; they are not copied into the project."
-			set reviewButtons to {"Leave Unapproved", "Review Again", "Approve & Open"}
-			set defaultButtonName to "Approve & Open"
-		else
-			set reviewMessage to "Review the generated environment before approving it." & return & return & "Project: " & projectName & return & "Identity: " & identityName & return & "File: .envrc" & return & return & "Review in VS Code opens a read-only copy of .envrc with shell syntax highlighting. Close that review window to return here."
-			set reviewButtons to {"Leave Unapproved", "Review in VS Code"}
-			set defaultButtonName to "Review in VS Code"
-		end if
-
-		set reviewChoice to «event sysodlog» reviewMessage given «class appr»:"Review Codex Environment", «class btns»:reviewButtons, «class dflt»:defaultButtonName
+		try
+			set reviewChoice to «event sysodlog» approvalMessage given «class appr»:"Approve Codex Environment", «class btns»:{"Leave Unapproved", "Review in VS Code", "Approve & Open"}, «class dflt»:"Approve & Open", «class cbtn»:"Leave Unapproved"
+		on error errorMessage number errorNumber
+			if errorNumber is -128 then return false
+			error errorMessage number errorNumber
+		end try
 		set chosenButton to «class bhit» of reviewChoice
 		if chosenButton is "Leave Unapproved" then return false
 
-		if chosenButton is "Review in VS Code" or chosenButton is "Review Again" then
+		if chosenButton is "Review in VS Code" then
 			my runCommand({launcherPath, "project-review", folderPath})
-			set hasReviewed to true
 		else if chosenButton is "Approve & Open" then
 			my runCommand({"direnv", "allow", folderPath})
 			return true
 		end if
 	end repeat
-end reviewAndApproveProject
+end approveProject
 
 on removeProjectContext(launcherPath, folderPath)
 	set removeChoice to «event sysodlog» "Remove this folder’s generated, untracked .envrc and Codex workspace? Its direnv approval and local Git-exclude entries will also be removed. Identities, credentials, .codex, and unrelated VS Code settings will remain." given «class appr»:"Remove Codex Context?", «class btns»:{"Cancel", "Remove"}, «class dflt»:"Cancel", «class cbtn»:"Cancel"
@@ -114,7 +108,7 @@ on removeProjectContext(launcherPath, folderPath)
 end removeProjectContext
 
 on launchProject(launcherPath, folderPath)
-	my runCommand({"/usr/bin/env", "CODEX_VSCODE_DOCK_LABEL=1", launcherPath, "vscode-project", folderPath})
+	my runCommand({"/usr/bin/env", "CODEX_VSCODE_DOCK_LABEL=0", launcherPath, "vscode-project", folderPath})
 end launchProject
 
 on runCommand(commandArguments)

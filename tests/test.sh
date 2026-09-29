@@ -977,9 +977,27 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   grep -Fq 'project-reset' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'project-review' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Review in VS Code' "$TEST_ROOT/codex-project-app.applescript"
-  grep -Fq 'Review Again' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Approve & Open' "$TEST_ROOT/codex-project-app.applescript"
-  grep -Fq 'CODEX_VSCODE_DOCK_LABEL=1' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq '"Leave Unapproved", "Review in VS Code", "Approve & Open"' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq 'CODEX_VSCODE_DOCK_LABEL=0' "$TEST_ROOT/codex-project-app.applescript"
+
+  open_with_app="$TEST_ROOT/apps/VS Code Identity.app"
+  osacompile -o "$open_with_app" "$ROOT/macos/VSCodeIdentity.applescript"
+  osadecompile "$open_with_app/Contents/Resources/Scripts/main.scpt" \
+    > "$TEST_ROOT/vscode-identity-app.applescript"
+  grep -Fq '"project", identityName, folderPath' "$TEST_ROOT/vscode-identity-app.applescript"
+  grep -Fq '"vscode", identityName, folderPath' "$TEST_ROOT/vscode-identity-app.applescript"
+  grep -Fq '"Leave Unapproved", "Review in VS Code", "Approve & Open"' "$TEST_ROOT/vscode-identity-app.applescript"
+  mkdir -p "$TEST_ROOT/open-with-project"
+  ln -s "$TEST_ROOT/missing-envrc" "$TEST_ROOT/open-with-project/.envrc"
+  osascript - "$open_with_app/Contents/Resources/Scripts/main.scpt" \
+    "$TEST_ROOT/open-with-project/.envrc" "$TEST_ROOT/open-with-project/missing" <<'APPLESCRIPT' >/dev/null
+on run arguments
+  set appScript to «event sysoload» (POSIX file (item 1 of arguments))
+  if not appScript's fileExists(item 2 of arguments) then error "dangling .envrc symlink was treated as absent"
+  if appScript's fileExists(item 3 of arguments) then error "missing .envrc was treated as existing"
+end run
+APPLESCRIPT
 
   # Call compiled non-UI handlers with a recorder instead of opening an editor.
   apple_mock="$TEST_ROOT/"'helper $dollar & quote'"'"' [x]'
@@ -1022,8 +1040,8 @@ APPLESCRIPT
   printf '%s\0' vscode-project "$apple_folder" > "$TEST_ROOT/apple-expected-args"
   cmp -s "$TEST_ROOT/apple-args" "$TEST_ROOT/apple-expected-args" ||
     fail "AppleScript launch handler changed helper arguments"
-  [[ "$(head -n 1 "$TEST_ROOT/apple-env")" == 1 ]] ||
-    fail "AppleScript launch handler did not require Dock identity labels"
+  [[ "$(head -n 1 "$TEST_ROOT/apple-env")" == 0 ]] ||
+    fail "AppleScript launch handler did not use the installed editor"
 
   CODEX_TEST_APPLE_ARGS="$TEST_ROOT/apple-args" \
     CODEX_TEST_APPLE_ENV="$TEST_ROOT/apple-env" CODEX_TEST_APPLE_EXIT=23 \

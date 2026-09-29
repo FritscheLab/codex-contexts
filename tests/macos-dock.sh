@@ -146,6 +146,8 @@ prepare_macos_vscode_editor dock-unit "$unit_home" "$fake_executable" >/dev/null
 
 quiet_check env CODEX_VSCODE_DOCK_LABEL=0 "$DOCK_TEST_TOOL" vscode dock-unit "$project_one" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$CODEX_VSCODE_CLI" ]] || fail 'CLI opt-out was ignored'
+quiet_check env -u CODEX_VSCODE_DOCK_LABEL "$DOCK_TEST_TOOL" vscode dock-unit "$project_one" >/dev/null
+[[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$CODEX_VSCODE_CLI" ]] || fail 'installed editor was not the default'
 
 # Saved-project invocations use the named editor's CLI.
 printf '%s\n' "$project_two" >"$DOCK_TEST_ROOT/legacy-last-project"

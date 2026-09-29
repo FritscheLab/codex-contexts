@@ -178,5 +178,5 @@ for the corresponding checks in each surface.
 | `CODEX_UMGPT_MODELS_FILE` | Personal U-M defaults and preferred model order; defaults to `$CODEX_HOMES_ROOT/umgpt-models.toml` |
 | `CODEX_VSCODE_EXTENSIONS_DIR` | Existing VS Code extensions directory to reuse; defaults to `~/.vscode/extensions` when it exists |
 | `CODEX_VSCODE_CLI` | VS Code CLI command or absolute path; auto-detected when unset |
-| `CODEX_VSCODE_DOCK_LABEL` | Named macOS VS Code copies; defaults to `1`, or set `0` to use the installed editor |
+| `CODEX_VSCODE_DOCK_LABEL` | Use the installed VS Code app by default (`0`); set `1` for a named app copy per identity |
 | `CODEX_SKILLS_SOURCE` | Canonical personal skills directory; defaults to `~/.codex/skills` |

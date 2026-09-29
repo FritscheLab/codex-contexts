@@ -190,17 +190,18 @@ Open a new Codex chat and integrated terminal after launch.
 
 ### VS Code Dock icons look identical on macOS
 
-The icons use the standard VS Code artwork. The helper prepares named editor
-copies under `$CODEX_HOME/vscode-editor/`; hover over a running icon to read
-`VS Code - NAME`, including `VS Code - default`. Window titles and status-bar
-colors also identify the context.
+The icons use the standard VS Code artwork. By default, the helper uses the
+installed VS Code app for every identity and keeps their user data separate.
+Window titles and status-bar colors identify the context. If
+`CODEX_VSCODE_DOCK_LABEL=1` is set, the helper prepares named editor copies
+under `$CODEX_HOME/vscode-editor/`; hover over a running icon to read
+`VS Code - NAME`, including `VS Code - default`.
 
 Quit the intended identity and reopen its project through the helper, Finder's
 **Open in Codex Project** Quick Action/Service, or a file manager's
-**Open With > VS Code - NAME** handler. The identity-specific handler checks
-that the folder's `.envrc` selects the same identity before opening it. If
-`CODEX_VSCODE_DOCK_LABEL=0` is set, the helper
-uses the original installed editor without the named editor copy. An
+**Open With > VS Code - NAME** handler. For an unconfigured folder, the handler
+offers setup for that identity. For a configured folder, it checks that
+`.envrc` selects the same identity before opening it. An
 already-running identity keeps its original application until it quits.
 
 Clicking a running Dock icon focuses that editor. **After quitting, use

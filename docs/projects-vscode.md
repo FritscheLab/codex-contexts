@@ -41,13 +41,13 @@ The generated `.vscode/<folder-name>.code-workspace` uses the project folder's
 name in the Explorer, shows `<folder-name> [CODEX: IDENTITY]` in the title,
 and sets a status-bar color.
 
-Review both files before use. They contain no credentials when generated, but
+You can review both files before use. They contain no credentials when generated, but
 `.envrc` is executable shell code with local paths and an identity name. The
 workspace also includes that name. Keep these files local to your computer.
 
 You can open a read-only `.envrc` review in VS Code with
 `./bin/codex-home project-review "/path/to/project"`, or use a text editor.
-After reviewing both files, approve `.envrc`:
+Approve `.envrc` before opening the project:
 
 ```bash
 direnv allow "/path/to/project"
@@ -305,9 +305,14 @@ checks do not establish institutional approval; follow the
 
 ## macOS Dock names
 
-For standard VS Code and VS Code Insiders on macOS, the helper prepares a
-complete application copy named `VS Code - work` (or your selected identity).
-The `default` identity uses `VS Code - default`. Its location is:
+By default, the helper launches the installed VS Code app with an
+identity-specific `--user-data-dir`. This keeps each identity's settings and
+environment separate while using the same installed application. Window
+titles and status-bar colors identify the context.
+
+Set `CODEX_VSCODE_DOCK_LABEL=1` to use a complete application copy named
+`VS Code - work` (or your selected identity). The `default` identity uses
+`VS Code - default`. Its location is:
 
 ```text
 $CODEX_HOME/vscode-editor/VS Code - NAME.app
@@ -325,32 +330,33 @@ original VS Code installation remains available for ordinary use.
 On macOS, the Finder integration creates a small handler app at
 `~/Applications/VS Code - NAME.app` for each configured identity. File managers
 that expose folder handlers in an **Open With** menu, such as ForkLift, can use
-it to forward the folder to `codex-home vscode NAME`. In Finder, use **Quick
-Actions > Open in Codex Project** or **Services > Open in Codex Project**; that
-app reads the folder's current context. The actual editor copy remains under
-`CODEX_HOME/vscode-editor` and keeps its separate Dock name.
+it to set up an unconfigured folder for `NAME` or open one already configured
+for that identity. In Finder, use **Quick Actions > Open in Codex Project** or
+**Services > Open in Codex Project**. That app reads the folder's current
+context. Named editor copies, if enabled,
+remain under `CODEX_HOME/vscode-editor`.
 
-Hover over a running editor's Dock icon to read its identity. Clicking that
-running icon focuses the editor. The icon artwork remains VS Code's, while
-the workspace title and status-bar color also identify the selected context.
+When named copies are enabled, hover over a running editor's Dock icon to read
+its identity. Clicking that running icon focuses the editor. The icon artwork
+remains VS Code's.
 
 **After quitting, start the identity through the Finder Quick Action, a
 file-manager Open With handler, or `codex-home`.** Do not pin or directly open
 the generated editor copies: macOS launches them without the helper's
 `CODEX_HOME`, approved environment, or `--user-data-dir` arguments.
 
-Update the original VS Code installation and let the helper refresh its
-copies; avoid updating individual identity copies separately. Refresh occurs
-when that identity is stopped. If its editor is running, quit it and reopen
-the project through the helper or Finder Quick Action. Check the window titles
-so you close only the intended identity. Reinstall Codex Project after updating
-the helper.
+If you use named copies, update the original VS Code installation and let the
+helper refresh its copies; avoid updating individual identity copies
+separately. Refresh occurs when that identity is stopped. If its editor is
+running, quit it and reopen the project through the helper or Finder Quick
+Action. Check the window titles so you close only the intended identity.
+Reinstall Codex Project after updating the helper.
 
-Custom `CODEX_VSCODE_CLI` wrappers and Linux use the supplied CLI. To use the
-original installed application's CLI without a named copy on macOS:
+Custom `CODEX_VSCODE_CLI` wrappers and Linux use the supplied CLI. To request
+a named copy for a terminal launch on macOS:
 
 ```bash
-CODEX_VSCODE_DOCK_LABEL=0 ./bin/codex-home vscode work "/path/to/project"
+CODEX_VSCODE_DOCK_LABEL=1 ./bin/codex-home vscode work "/path/to/project"
 ```
 
 This override changes how helper launches select the editor; it does not

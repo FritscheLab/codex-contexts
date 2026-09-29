@@ -89,7 +89,7 @@ Environment:
                      (default: ~/.vscode/extensions when it exists)
   CODEX_VSCODE_CLI  VS Code CLI command or absolute path (auto-detected)
   CODEX_VSCODE_DOCK_LABEL
-                     Named macOS VS Code copies (default: 1; 0 uses the installed app)
+                     Named macOS VS Code copies (default: 0; 1 uses named copies)
   CODEX_SKILLS_SOURCE
                      Canonical skills directory (default: ~/.codex/skills)
 EOF
@@ -2378,7 +2378,7 @@ launch_vscode_project_env() {
   # project's environment once, then validate and execute within that process.
   project_direnv_exec "$project_abs" /usr/bin/env CODEX_HOMES_ROOT="$homes_root" \
     "$BASH" "$helper" _vscode-loaded "$project_abs" "$expected_name" \
-    "$HOME/.codex" "$vscode_cli" "$extensions_dir" "${CODEX_VSCODE_DOCK_LABEL:-1}"
+    "$HOME/.codex" "$vscode_cli" "$extensions_dir" "${CODEX_VSCODE_DOCK_LABEL:-0}"
 }
 
 project_launch_home() {

@@ -38,12 +38,11 @@ credentials.
 
 The installer also creates **VS Code - NAME** handlers in `~/Applications`
 for file managers with folder **Open With** menus, such as ForkLift. The helper
-opens a named VS Code instance for each identity and reuses it while running.
-Hover over its Dock icon to read the identity; click it to focus the editor.
-See [macOS Dock names](projects-vscode.md#macos-dock-names) for labels, copy
-refresh, and the original-editor option. Do not pin or directly launch the
-editor copies under an identity home; they need the helper's environment
-and launch arguments.
+opens each identity with separate VS Code data and reuses its instance while
+running. By default, it uses the installed VS Code app. See
+[macOS Dock names](projects-vscode.md#macos-dock-names) for the optional named
+editor copies. Do not pin or directly launch those copies under an identity
+home; they need the helper's environment and launch arguments.
 
 To choose another installation directory:
 
@@ -76,12 +75,12 @@ You can also select a folder and use **Finder > Services > Open in Codex
 Project**. If the action is missing, [check Finder's menus](#if-open-in-codex-project-is-not-listed).
 
 In file managers with folder **Open With** menus, choose **VS Code - NAME**
-to open an already configured project directly. Its approved `.envrc` must
-select that identity, and its generated workspace must exist. The handler
-reports an identity mismatch rather than opening a different account. It
-passes the folder to `codex-home`, which opens the workspace in the named
-VS Code instance. Do not choose **Change All**; keep Finder as the default
-handler for folders.
+to use that identity. If the folder has no `.envrc`, the handler offers to
+create its project context for `NAME`, then offers **Approve & Open** or
+**Review in VS Code**. For an already configured folder, its approved `.envrc`
+must select `NAME`, and its generated workspace must exist. The handler reports
+an identity mismatch rather than opening a different account. Do not choose
+**Change All**; keep Finder as the default handler for folders.
 
 When the folder has no `.envrc`, the app goes straight to identity selection.
 When it is already configured, the menu offers:
@@ -96,10 +95,11 @@ Return to open a configured folder.
 Setup and change list only usable identities that already exist on this
 computer. Choose an identity and confirm setup to generate the project files.
 
-Choose **Review in VS Code** to read the generated shell file. The app opens
-an exact, read-only copy of `.envrc` with syntax highlighting. Close the review
-window to return to the app; **Approve & Open** then becomes available. The
-temporary copy is deleted when the review window closes.
+After setup in either route, choose **Approve & Open** to approve the generated
+`.envrc` and open the project immediately. Or choose **Review in VS Code** to
+inspect an exact, read-only copy with syntax highlighting first. Close the
+review window to return to the same choice. The temporary copy is deleted
+when that window closes.
 
 **Leave Unapproved** keeps the generated files without authorizing them. You
 can later use the menu's change/remove actions or approve the file manually:
