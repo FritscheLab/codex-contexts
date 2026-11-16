@@ -8,6 +8,7 @@ commands beginning `./bin/` assume the repository directory.
 | Symptom | First check / owning guide |
 |---|---|
 | `codex-home: command not found` | Add the clone's `bin` to PATH: [shell setup](../INSTALLATION.md#3-clone-and-validate). |
+| Codex CLI is not found on PATH, or login reports `No such file or directory: .../codex` | [Install and verify the terminal CLI](../INSTALLATION.md#1-install-prerequisites). Older launchers report the last PATH location tried, which can be an unrelated directory such as `.lmstudio/bin`. |
 | Unknown helper command or old `model_catalog_json` rejection | Run `type -a codex-home`; [update the selected copy](../INSTALLATION.md#updating-this-repository), including Finder if installed. |
 | Python cannot import `tomllib` or a test prerequisite is missing | [Install the required versions](../INSTALLATION.md#1-install-prerequisites). |
 | SSH agent, proxy, certificate, or external key disappeared | [Opt in to exact environment names](security.md#environment-forwarding). |

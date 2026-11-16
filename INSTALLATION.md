@@ -70,6 +70,27 @@ Use macOS or Linux with Bash 3.2+, Python 3.11+, and the
 | macOS, with [Homebrew](https://brew.sh/) | `brew install git direnv jq python` |
 | Debian / Ubuntu | `sudo apt install bash bubblewrap curl direnv expect git jq python3` |
 
+Terminal commands need a `codex` executable on `PATH`. The VS Code extension's
+bundled copy may be available only inside the editor. On macOS with Homebrew,
+install the CLI separately:
+
+```bash
+brew install --cask codex
+```
+
+For Linux or other installation methods, follow the
+[Codex CLI installation guide](https://learn.chatgpt.com/docs/codex/cli).
+Verify from the same terminal where you will run `codex-home`:
+
+```bash
+command -v codex
+codex --version
+```
+
+Expect an executable path and a `codex-cli` version. If either check fails,
+finish CLI installation or add its executable directory to `PATH` before
+running `codex-home login`, `run`, or `doctor`.
+
 Check `python3 --version` and `direnv version`: Python must be 3.11+ and
 `direnv` 2.32.2+. Model discovery also needs curl 7.76+. On older systems,
 [upgrade direnv](https://direnv.net/docs/installation.html) or Python first.

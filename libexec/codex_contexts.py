@@ -452,7 +452,19 @@ def launch(identity: str, home: str, command: list[str], with_key: bool = True) 
                 environment[name] = selected_secret(home, name)
     if not command:
         fail("missing launch command")
-    os.execvpe(command[0], command, environment)
+    executable = command[0]
+    if executable == "codex":
+        executable = shutil.which("codex", path=environment.get("PATH", os.defpath))
+        if executable is None:
+            fail("Codex CLI executable 'codex' was not found on PATH; install the Codex CLI, "
+                 "then verify 'codex --version' in this terminal. "
+                 "See INSTALLATION.md#1-install-prerequisites")
+    try:
+        os.execvpe(executable, command, environment)
+    except FileNotFoundError:
+        if command[0] == "codex":
+            fail(f"could not start Codex CLI at {executable}; check its interpreter or reinstall the CLI")
+        raise
 
 
 def validate_project(path: str, scope: str) -> None:

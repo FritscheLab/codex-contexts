@@ -13,6 +13,9 @@ Choose a recognizable label such as `personal` or `work`. Labels appear in
 project files and window titles, so keep sensitive names out of them.
 `default` is reserved for the existing `~/.codex` home.
 
+First verify `codex --version` works in this terminal. If it fails, follow
+[CLI installation](../INSTALLATION.md#1-install-prerequisites).
+
 ```bash
 ./bin/codex-home create-subscription personal
 ./bin/codex-home login personal

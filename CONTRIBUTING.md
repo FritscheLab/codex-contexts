@@ -54,6 +54,8 @@ symlinked ownership evidence are left untouched.
 registering real applications.
 `bash tests/packaging.sh` checks the bundled layout;
 `bash tests/api-auth.sh` checks key handling and conservative migration.
+`bash tests/cli-launch.sh` checks missing CLI diagnostics, executable failures,
+and argument, identity, and exit-status preservation with a closed test PATH.
 
 The [CI workflow](.github/workflows/ci.yml) runs offline tests with command
 mocks on Linux and macOS, then checks generated settings and separate local
