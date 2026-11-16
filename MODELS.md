@@ -56,6 +56,9 @@ Restart the CLI, or run **Developer: Reload Window** in VS Code and start a
 **Intelligence Index v4.3.2**; higher is better. Prices use provider rates,
 with only Opus 5.5's verified 10% U-M adjustment. [Sources and pricing conditions](docs/model-reference.md#prices-and-limits).
 
+This is a dated reference. Check the linked provider prices before spending,
+and run `codex-home models NAME` for the models currently available to your identity.
+
 | Model | Index | Input | Output | Context¹ | Tokens/s² |
 |---|---:|---:|---:|---:|---:|
 | [GPT-6 Luna](https://artificialanalysis.ai/models/gpt-6-luna-medium) | 29 | $0.10 | $0.50 | 1.05M | 142.8 |

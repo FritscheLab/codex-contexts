@@ -54,7 +54,19 @@ assert_api_config() {
   assert_line_once "$file" "model_provider = \"$name\""
   assert_line_once "$file" "[model_providers.$name]"
   assert_line_once "$file" "base_url = \"$base_url\""
-  assert_line_once "$file" "env_key = \"$key_env\""
+  python3 -I - "$file" "$name" "$key_env" <<'PY'
+from pathlib import Path
+import sys, tomllib
+path, name, key = sys.argv[1:]
+provider = tomllib.loads(Path(path).read_text())["model_providers"][name]
+assert "env_key" not in provider
+auth = provider["auth"]
+assert auth["args"][0] == "-I"
+assert auth["args"][2:] == ["credential", str(Path(path).parent.resolve()), key]
+assert Path(auth["command"]).is_absolute()
+assert Path(auth["args"][1]).is_file()
+assert auth["timeout_ms"] == 5000 and auth["refresh_interval_ms"] == 0
+PY
   assert_line_once "$file" 'wire_api = "responses"'
   assert_line_once "$file" '[tui]'
   assert_line_once "$file" 'status_line = ["model-with-reasoning", "context-remaining", "current-dir"]'
@@ -72,6 +84,8 @@ fi
 require_command direnv "Install direnv and its shell hook; see INSTALLATION.md."
 require_command jq "Install jq; see INSTALLATION.md."
 require_command expect "Install expect to run the interactive credential tests."
+require_command python3 "Install Python 3.11 or newer; see INSTALLATION.md."
+python3 -I -c 'import tomllib' || fail "Python 3.11 or newer is required"
 
 LIVE_CODEX=""
 if [[ "${CODEX_CONTEXTS_LIVE_TESTS:-0}" == "1" ]]; then
@@ -346,25 +360,21 @@ if grep -Fq -- "$special_secret" "$TEST_ROOT/set-key-output"; then
   fail "set-key echoed the entered secret"
 fi
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  key_mode="$(stat -f '%Lp' "$CODEX_HOMES_ROOT/lab-api/.env")"
+  key_mode="$(stat -f '%Lp' "$CODEX_HOMES_ROOT/lab-api/api-key.env")"
 else
-  key_mode="$(stat -c '%a' "$CODEX_HOMES_ROOT/lab-api/.env")"
+  key_mode="$(stat -c '%a' "$CODEX_HOMES_ROOT/lab-api/api-key.env")"
 fi
-[[ "$key_mode" == "600" ]] || fail "set-key wrote .env with mode $key_mode, not 600"
+[[ "$key_mode" == "600" ]] || fail "set-key wrote api-key.env with mode $key_mode, not 600"
 loaded_secret="$(
-  env -u LAB_API_KEY /bin/bash -c '
-    set -eu
-    source "$1"
-    printf "%s" "$LAB_API_KEY"
-  ' _ "$CODEX_HOMES_ROOT/lab-api/.env"
+  python3 -I "$ROOT/libexec/codex_contexts.py" secret "$CODEX_HOMES_ROOT/lab-api"
 )"
 [[ "$loaded_secret" == "$special_secret" ]] || fail "set-key did not preserve shell metacharacters"
 
-printf 'LAB_API_KEY=test-secret\n' > "$CODEX_HOMES_ROOT/lab-api/.env"
-chmod 600 "$CODEX_HOMES_ROOT/lab-api/.env"
+printf 'LAB_API_KEY=test-secret\n' > "$CODEX_HOMES_ROOT/lab-api/api-key.env"
+chmod 600 "$CODEX_HOMES_ROOT/lab-api/api-key.env"
 
 stored_status="$("$TOOL" show lab-api)"
-grep -q 'API key env    : LAB_API_KEY (stored; enter its project or use codex-home run)' \
+grep -q 'API key entry : LAB_API_KEY (stored; use codex-home run)' \
   <<< "$stored_status"
 
 mkdir -p "$TEST_ROOT/fake-curl-bin"
@@ -391,9 +401,9 @@ if grep -q 'test-secret' "$TEST_ROOT/curl-args"; then
 fi
 grep -q 'Authorization: Bearer test-secret' "$TEST_ROOT/curl-config"
 
-printf 'UMGPT_API_KEY=umgpt-test-secret\n' > "$CODEX_HOMES_ROOT/umgpt/.env"
-printf 'UMGPT_API_KEY=umgpt-test-secret\n' > "$CODEX_HOMES_ROOT/umgpt-low/.env"
-chmod 600 "$CODEX_HOMES_ROOT/umgpt/.env" "$CODEX_HOMES_ROOT/umgpt-low/.env"
+printf 'UMGPT_API_KEY=umgpt-test-secret\n' > "$CODEX_HOMES_ROOT/umgpt/api-key.env"
+printf 'UMGPT_API_KEY=umgpt-test-secret\n' > "$CODEX_HOMES_ROOT/umgpt-low/api-key.env"
+chmod 600 "$CODEX_HOMES_ROOT/umgpt/api-key.env" "$CODEX_HOMES_ROOT/umgpt-low/api-key.env"
 umgpt_models_output="$(
   CODEX_TEST_CURL_ARGS="$TEST_ROOT/umgpt-curl-args" \
   CODEX_TEST_CURL_CONFIG="$TEST_ROOT/umgpt-curl-config" \
@@ -500,6 +510,7 @@ expect -c '
     PATH=$env(CODEX_TEST_PATH) \
     CODEX_TEST_CURL_ARGS=$env(CODEX_TEST_CURL_ARGS) \
     CODEX_TEST_CURL_CONFIG=$env(CODEX_TEST_CURL_CONFIG) \
+    {CODEX_CONTEXTS_ENV_ALLOW=CODEX_TEST_CURL_ARGS CODEX_TEST_CURL_CONFIG} \
     $env(CODEX_TEST_TOOL) probe-models $env(CODEX_TEST_BASE_URL)
   expect {
     -exact "API key for $env(CODEX_TEST_BASE_URL): " {}
@@ -715,12 +726,12 @@ fi
 
 direnv allow "$TEST_ROOT/project" >/dev/null 2>&1
 cd "$TEST_ROOT/project"
-actual="$(quiet_test_command direnv exec . sh -c 'printf "%s|%s|%s" "$CODEX_IDENTITY" "$CODEX_HOME" "$LAB_API_KEY"')"
-[[ "$actual" == "lab-api|$CODEX_HOMES_ROOT/lab-api|test-secret" ]]
+actual="$(quiet_test_command env -u LAB_API_KEY direnv exec . sh -c 'printf "%s|%s|%s" "$CODEX_IDENTITY" "$CODEX_HOME" "${LAB_API_KEY:-}"')"
+[[ "$actual" == "lab-api|$CODEX_HOMES_ROOT/lab-api|" ]] || fail "project envrc exported an API credential"
 
 current="$(quiet_test_command direnv exec . "$TOOL" current)"
 grep -q 'Codex identity : API: LAB-API' <<< "$current"
-grep -q 'API key env    : LAB_API_KEY (loaded)' <<< "$current"
+grep -q 'API key entry : LAB_API_KEY (stored; use codex-home run)' <<< "$current"
 
 mkdir -p "$TEST_ROOT/fake-bin"
 printf '%s\n' \
@@ -743,6 +754,8 @@ printf '%s\n' \
   'exit "${CODEX_TEST_CODEX_EXIT:-0}"' \
   > "$TEST_ROOT/fake-bin/codex"
 chmod +x "$TEST_ROOT/fake-bin/code" "$TEST_ROOT/fake-bin/codex"
+printf 'UMGPT_API_KEY=synthetic-test-key\n' >"$CODEX_HOMES_ROOT/umgpt/api-key.env"
+printf 'UMGPT_API_KEY=synthetic-test-key\n' >"$CODEX_HOMES_ROOT/umgpt-low/api-key.env"
 
 run_output="$(
   CODEX_IDENTITY=pro \
@@ -754,7 +767,7 @@ run_output="$(
 [[ "$(grep -Fc 'Codex identity: API: LAB-API' <<< "$run_output")" -eq 1 ]] ||
   fail "run printed the identity banner more or less than once"
 grep -Fxq -- '--version' "$TEST_ROOT/codex-args"
-grep -Fxq -- "$CODEX_HOMES_ROOT/lab-api|lab-api|test-secret" "$TEST_ROOT/codex-env"
+grep -Fxq -- "$CODEX_HOMES_ROOT/lab-api|lab-api|" "$TEST_ROOT/codex-env"
 [[ "$(cat "$TEST_ROOT/codex-args")" == "--version" ]] ||
   fail "run changed arguments for redirected output"
 [[ "$run_output" != *$'\033'* ]] ||
@@ -814,7 +827,7 @@ run_from_project() {
     CODEX_TEST_CODEX_ENV="$TEST_ROOT/project-run-env" \
     PATH="$TEST_ROOT/fake-bin:$PATH" \
     quiet_test_command direnv exec . "$TOOL" run "$@" >/dev/null
-  grep -Fxq -- "$CODEX_HOMES_ROOT/lab-api|lab-api|test-secret" \
+  grep -Fxq -- "$CODEX_HOMES_ROOT/lab-api|lab-api|" \
     "$TEST_ROOT/project-run-env" || fail "run did not use the active project context"
 }
 
@@ -941,6 +954,10 @@ review_snapshot_path="$(tail -n 1 "$TEST_ROOT/code-review-args")"
   fail "project-review left its temporary snapshot behind"
 
 bash "$ROOT/tests/identity-config.sh"
+bash "$ROOT/tests/packaging.sh"
+bash "$ROOT/tests/api-auth.sh"
+bash "$ROOT/tests/security-launch.sh"
+bash "$ROOT/tests/sandbox-config.sh"
 bash "$ROOT/tests/model-catalog.sh"
 bash "$ROOT/tests/project-files.sh"
 bash "$ROOT/tests/project-launch.sh"
@@ -948,6 +965,10 @@ bash "$ROOT/tests/project-launch.sh"
 if [[ "$(uname -s)" == "Darwin" ]]; then
   bash "$ROOT/tests/macos-dock.sh"
   bash "$ROOT/tests/macos-open-with.sh"
+  bash "$ROOT/tests/macos-cleanup.sh"
+  bash "$ROOT/tests/macos-uninstall.sh"
+  bash "$ROOT/tests/macos-install.sh"
+  bash "$ROOT/tests/macos-mutations.sh"
   CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
     CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/services" \
     CODEX_MACOS_SKIP_REGISTER=1 \
@@ -978,7 +999,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   grep -Fq 'project-review' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Review in VS Code' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'Approve & Open' "$TEST_ROOT/codex-project-app.applescript"
-  grep -Fq '"Leave Unapproved", "Review in VS Code", "Approve & Open"' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq '"Leave Unapproved", "Review in VS Code"' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq '"Leave Unapproved", "Approve & Open"' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq 'project-fingerprint' "$TEST_ROOT/codex-project-app.applescript"
+  grep -Fq 'project-approve' "$TEST_ROOT/codex-project-app.applescript"
   grep -Fq 'CODEX_VSCODE_DOCK_LABEL=0' "$TEST_ROOT/codex-project-app.applescript"
 
   open_with_app="$TEST_ROOT/apps/VS Code Identity.app"
@@ -987,7 +1011,11 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     > "$TEST_ROOT/vscode-identity-app.applescript"
   grep -Fq '"project", identityName, folderPath' "$TEST_ROOT/vscode-identity-app.applescript"
   grep -Fq '"vscode", identityName, folderPath' "$TEST_ROOT/vscode-identity-app.applescript"
-  grep -Fq '"Leave Unapproved", "Review in VS Code", "Approve & Open"' "$TEST_ROOT/vscode-identity-app.applescript"
+  grep -Fq '"Leave Unapproved", "Review in VS Code"' "$TEST_ROOT/vscode-identity-app.applescript"
+  grep -Fq '"Leave Unapproved", "Approve & Open"' "$TEST_ROOT/vscode-identity-app.applescript"
+  grep -Fq 'project-approve' "$TEST_ROOT/vscode-identity-app.applescript"
+  cmp -s "$ROOT/libexec/codex_contexts.py" "$test_app/Contents/Resources/libexec/codex_contexts.py" ||
+    fail "Finder app did not bundle the Python data helper"
   mkdir -p "$TEST_ROOT/open-with-project"
   ln -s "$TEST_ROOT/missing-envrc" "$TEST_ROOT/open-with-project/.envrc"
   osascript - "$open_with_app/Contents/Resources/Scripts/main.scpt" \
@@ -1081,12 +1109,35 @@ APPLESCRIPT
     CODEX_MACOS_SKIP_REGISTER=1 \
     "$ROOT/bin/install-macos-open-with" >/dev/null 2>&1
   [[ -x "$test_app/Contents/Resources/codex-home" ]]
-  find "$TEST_ROOT/apps/.codex-project-backups" -maxdepth 1 -type d \
-    -name '*.app.backup' -print -quit | grep -q . ||
-    fail "reinstall did not retain a non-application backup"
-  find "$TEST_ROOT/services/.codex-project-backups" -maxdepth 1 -type d \
-    -name '*.workflow.backup' -print -quit | grep -q . ||
-    fail "reinstall did not retain a Quick Action backup"
+  [[ ! -e "$TEST_ROOT/apps/.codex-project-backups" ]] ||
+    fail "reinstall retained permanent application backups"
+  [[ ! -e "$TEST_ROOT/services/.codex-project-backups" ]] ||
+    fail "reinstall retained permanent Quick Action backups"
+
+  # Failure publishing the workflow must restore both exact prior components.
+  installed_app_inode="$(stat -f %i "$test_app")"
+  installed_workflow_inode="$(stat -f %i "$test_workflow")"
+  install_test_python="$(command -v python3)"
+  mkdir -p "$TEST_ROOT/install-failure-bin"
+  cat >"$TEST_ROOT/install-failure-bin/python3" <<'EOF'
+#!/bin/bash
+if [[ "${1:-}" == -I && "${2:-}" == */macos_bundles.py && "${3:-}" == rename && "${5:-}" == "$CODEX_TEST_WORKFLOW_DESTINATION" && "${4:-}" != */previous.workflow ]]; then
+  exit 71
+fi
+exec "$CODEX_TEST_INSTALL_PYTHON" "$@"
+EOF
+  chmod +x "$TEST_ROOT/install-failure-bin/python3"
+  if PATH="$TEST_ROOT/install-failure-bin:$PATH" \
+    CODEX_TEST_INSTALL_PYTHON="$install_test_python" \
+    CODEX_TEST_WORKFLOW_DESTINATION="$(cd "$TEST_ROOT/services" && pwd -P)/Open in Codex Project.workflow" \
+    CODEX_MACOS_APP_DIR="$TEST_ROOT/apps" \
+    CODEX_MACOS_SERVICES_DIR="$TEST_ROOT/services" CODEX_MACOS_SKIP_REGISTER=1 \
+    "$ROOT/bin/install-macos-open-with" >"$TEST_ROOT/install-failure" 2>&1; then
+    fail "installer ignored a workflow publication failure"
+  fi
+  grep -Fq 'could not install' "$TEST_ROOT/install-failure" || fail "fixture did not reach publication failure"
+  [[ "$(stat -f %i "$test_app")" == "$installed_app_inode" ]] || fail "failed install lost the prior app"
+  [[ "$(stat -f %i "$test_workflow")" == "$installed_workflow_inode" ]] || fail "failed install lost the prior workflow"
 
   # Refuse an unrelated service before touching the existing application.
   mkdir -p "$TEST_ROOT/foreign-services/Open in Codex Project.workflow"

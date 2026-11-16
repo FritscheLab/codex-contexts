@@ -74,12 +74,42 @@ mkdir -p "$project"
 write_project_files launch-unit "$project" >/dev/null
 approve_fixture
 
+# Detect a terminal opened through ordinary VS Code or carrying stale identity
+# variables before an implicit launch. Explicit named launches remain deliberate.
+(
+  cd "$project"
+  expect_rejection 'project selects launch-unit' env CODEX_IDENTITY=launch-other CODEX_HOME="$other_home" \
+    "$LAUNCH_TEST_TOOL" current
+  expect_rejection 'project selects launch-unit' env -u CODEX_IDENTITY -u CODEX_HOME \
+    "$LAUNCH_TEST_TOOL" current
+  expect_rejection 'project selects launch-unit' env CODEX_IDENTITY=launch-unit CODEX_HOME="$other_home" \
+    "$LAUNCH_TEST_TOOL" run --version
+  env CODEX_IDENTITY=launch-unit CODEX_HOME="$unit_home" "$LAUNCH_TEST_TOOL" current \
+    >"$LAUNCH_TEST_ROOT/current"
+  # Canonical home aliases identify the same home.
+  ln -s "$unit_home" "$LAUNCH_TEST_ROOT/home alias"
+  env CODEX_IDENTITY=launch-unit CODEX_HOME="$LAUNCH_TEST_ROOT/home alias" \
+    "$LAUNCH_TEST_TOOL" current >/dev/null
+  mkdir "$project/nested"
+  cd "$project/nested"
+  expect_rejection 'project selects launch-unit' env CODEX_IDENTITY=launch-other CODEX_HOME="$other_home" \
+    "$LAUNCH_TEST_TOOL" current
+)
+
 quiet_check "$LAUNCH_TEST_TOOL" vscode-project "$project" >/dev/null
 grep -Fxq -- "$unit_home/vscode-user-data" "$CODEX_LAUNCH_TEST_ARGS" || fail 'wrong user-data path'
 grep -Fxq -- "$project/.vscode/project \$one [x].code-workspace" "$CODEX_LAUNCH_TEST_ARGS" || fail 'project path was split or expanded'
 [[ "$(head -n 1 "$CODEX_LAUNCH_TEST_ENV")" == launch-unit ]] || fail 'wrong launched identity'
 [[ "$(tail -n 1 "$CODEX_LAUNCH_TEST_ENV")" == "$unit_home" ]] || fail 'wrong launched home'
 [[ "$(head -n 1 "$CODEX_LAUNCH_TEST_DETAILS")" == "$project" ]] || fail 'wrong editor working directory'
+# An ordinary launch must not create or refresh identity-specific menu apps.
+(
+  export CODEX_IDENTITY=launch-unit CODEX_HOME="$unit_home" CODEX_MACOS_SKIP_REGISTER=0
+  ensure_macos_vscode_open_with() { touch "$LAUNCH_TEST_ROOT/unwanted-handler"; }
+  quiet_check launch_vscode_loaded "$project" launch-unit "$LAUNCH_TEST_ROOT/default" \
+    "$CODEX_VSCODE_CLI" "$CODEX_VSCODE_EXTENSIONS_DIR" 0
+)
+[[ ! -e "$LAUNCH_TEST_ROOT/unwanted-handler" ]] || fail 'ordinary launch created an Open With handler'
 expect_rejection "project selects 'launch-unit', not 'launch-other'" \
   "$LAUNCH_TEST_TOOL" vscode launch-other "$project"
 
@@ -119,7 +149,7 @@ ln -s "$unit_home" "$home_alias"
 write_fixture launch-unit "$home_alias"
 approve_fixture
 quiet_check "$LAUNCH_TEST_TOOL" vscode-project "$project" >/dev/null
-[[ "$(tail -n 1 "$CODEX_LAUNCH_TEST_ENV")" == "$home_alias" ]] || fail 'canonical home alias was rejected or rewritten'
+[[ "$(tail -n 1 "$CODEX_LAUNCH_TEST_ENV")" == "$unit_home" ]] || fail 'home alias did not resolve to the selected private home'
 grep -Fxq -- "$unit_home/vscode-user-data" "$CODEX_LAUNCH_TEST_ARGS" || fail 'home alias changed the isolated data directory'
 
 # Inherited identity values must not rescue an incomplete or blocked .envrc.

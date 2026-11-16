@@ -177,7 +177,7 @@ footer(1, "<b>Keep it local.</b> Credentials belong in the identity home, outsid
        "<b>direnv allow</b>. Repeat setup on every computer.")
 pdf.showPage()
 
-header(2, "Everyday commands and quick fixes")
+header(2, "Everyday commands and security options")
 paragraph(
     '<b>codex-home run</b> uses the active context selected by direnv. Add <b>NAME</b> '
     'for an explicit choice. Set <b>P="/path/to/project"</b> below. Commands assume '
@@ -187,7 +187,7 @@ paragraph(
 
 left = section("Open and check", [
     ("code", 'cd "$P"\ncodex-home run\ncodex-home vscode-project\n'
-     'codex-home current\ncodex-home show NAME\ncodex-home list'),
+     'codex-home current'),
     ("text", "Local config: <b>current/show</b>. CLI model/session: <b>/status</b>. "
      "IDE: profile menu + model picker. "
      f"{link('Verification', 'docs/commands.md#check-the-selected-identity')}."),
@@ -201,11 +201,13 @@ left = section("Change or remove a project context", [
     ("text", "Reset removes untouched generated files and local Git exclusions. "
      "It keeps identity homes and credentials."),
 ], MARGIN, left)
-section("Optional: share personal skills", [
-    ("code", "codex-home share-skills-all"),
-    ("small", "Requires existing <b>~/.codex/skills</b>; links skills and skips conflicts. "
-     "Rerun after additions. Codex also discovers skills outside each home. "
-     f"{link('Guide', 'docs/skills.md')}."),
+section("Optional sandbox defaults", [
+    ("code", "codex-home set-sandbox work workspace-write"),
+    ("small", "Sets native command sandbox and user approval defaults. Reload VS Code "
+     "and start a new chat; verify active permissions. "
+     f"{link('Boundaries and overrides', 'docs/security.md#optional-native-sandbox')}."),
+    ("small", "Personal skills: <b>codex-home share-skills-all</b> links existing "
+     f"skills and skips conflicts. {link('Guide', 'docs/skills.md')}."),
 ], MARGIN, left)
 
 right = section("Provider checks and API keys", [
@@ -215,27 +217,24 @@ right = section("Provider checks and API keys", [
     ("text", "Wrong ChatGPT login? Reauthenticate only that identity:"),
     ("code", "codex-home run NAME logout\ncodex-home login NAME"),
 ], RIGHT, 638)
-right = section("Quick fixes", [
-    ("text", "<b>Wrong account:</b> relaunch with <b>codex-home vscode</b> "
-     "and start a new chat."),
-    ("text", "<b>Change refused:</b> files may be edited, tracked, "
-     f"or incomplete. Follow {link('manual recovery', 'docs/projects-vscode.md#manual-recovery-for-a-custom-or-shared-setup')}."),
-    ("text", "<b>HTTP 401/403:</b> check the key, URL, access, and network. "
-     "Never print the key."),
-    ("text", "<b>/responses fails:</b> confirm streaming Responses and tool-call "
-     "support. Chat Completions alone is insufficient."),
+right = section("Extra environment variables", [
+    ("small", "New API identities fetch their stored key through a credential command, "
+     "outside the editor environment. Proxies and extra variables require opt-in:"),
+    ("code", "CODEX_CONTEXTS_ENV_ALLOW='HTTPS_PROXY' \\\n  codex-home run work"),
+    ("small", "Use exact names separated by spaces. Managed API keys stay out of the environment; "
+     f"loader variables stay blocked. {link('Environment policy', 'docs/security.md#secret-exposure-boundaries')}."),
 ], RIGHT, right)
 right = section("Finder on macOS", [
     ("text", "Install from the clone directory:"),
     ("code", "./bin/install-macos-open-with"),
     ("text", "Right-click a folder: <b>Quick Actions &gt; Open in Codex Project</b> "
-     "(or <b>Services</b>). Dock hover label: <b>VS Code - NAME</b>. "
-     "After quitting, use Finder or the helper again; do not pin the editor copy. "
+     "(or <b>Services</b>). Choose its identity and review the generated files. "
+     "Use this launcher or the helper to reopen with the intended identity. "
      f"{link('Uninstall instructions', 'docs/macos-open-with.md#uninstall-the-finder-integration')}."),
 ], RIGHT, right)
 
 footer(2, "<b>Before using research data:</b> confirm approval for your provider, model, "
-       "and workflow. Separate identities are not a security sandbox. "
+       "and workflow. Native command sandboxing does not isolate the whole editor. "
        + link("Full commands", "docs/commands.md") + " | "
        + link("Troubleshooting", "docs/troubleshooting.md") + " | "
        + link("Security", "docs/security.md"))

@@ -57,7 +57,7 @@ project="$FILES_TEST_ROOT/ordinary project"
 make_project "$project"
 workspace="$(project_workspace_path "$project")"
 
-# Ordinary paths keep the previously generated text, including its final newline.
+# Ordinary paths keep an exact, credential-free template with its final newline.
 printf '%s\n' \
   "$PROJECT_ENVRC_MARKER" \
   'export CODEX_IDENTITY="files-one"' \
@@ -68,9 +68,11 @@ printf '%s\n' \
   '  return 1' \
   'fi' \
   '' \
-  'dotenv_if_exists "$CODEX_HOME/.env"' \
   "PATH_add \"$SCRIPT_DIR\"" \
   'watch_file "$CODEX_HOME/config.toml"' \
+  'if [[ -f "$CODEX_HOME/api-key.env" ]]; then' \
+  '  watch_file "$CODEX_HOME/api-key.env"' \
+  'fi' \
   'if [[ -f "$CODEX_HOME/.env" ]]; then' \
   '  watch_file "$CODEX_HOME/.env"' \
   'fi' \
@@ -78,6 +80,10 @@ printf '%s\n' \
   >"$FILES_TEST_ROOT/old-envrc"
 cmp -s "$project/.envrc" "$FILES_TEST_ROOT/old-envrc" || fail 'ordinary envrc format changed'
 [[ "$(generated_project_identity "$project/.envrc")" == files-one ]] || fail 'ordinary envrc not recognized'
+render_project_envrc files-one "$SCRIPT_DIR" 1 >"$FILES_TEST_ROOT/legacy-envrc"
+[[ "$(generated_project_identity "$FILES_TEST_ROOT/legacy-envrc")" == files-one ]] || fail 'legacy envrc cannot be safely migrated'
+render_project_envrc files-one "$SCRIPT_DIR" 0 1 >"$FILES_TEST_ROOT/old-watch-envrc"
+[[ "$(generated_project_identity "$FILES_TEST_ROOT/old-watch-envrc")" == files-one ]] || fail 'old key-file watch template cannot be migrated'
 printf '\n' >>"$project/.envrc"
 if generated_project_identity "$project/.envrc" >/dev/null; then fail 'accepted modified trailing newline'; fi
 cp "$FILES_TEST_ROOT/old-envrc" "$project/.envrc"

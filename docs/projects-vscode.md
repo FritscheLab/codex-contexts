@@ -1,78 +1,120 @@
 # Projects, direnv, and VS Code
 
-A **project context** selects the identity for a folder. Its `.envrc` points
-to that identity's **home** (`CODEX_HOME`), so the terminal and a helper-launched
-VS Code window use the same configuration.
+A project context selects an identity through `.envrc`; that identity's
+`CODEX_HOME` holds its account, provider settings, and sessions. Start with
+[Installation](../INSTALLATION.md). Run
+`./bin/codex-home` examples from the clone; bare `codex-home` assumes it is on
+`PATH`.
 
-Start with [Installation steps 1–3](../INSTALLATION.md#1-install-prerequisites)
-and a [verified identity](commands.md#check-the-selected-identity).
-Run `./bin/codex-home` examples from the clone directory. Bare `codex-home`
-works once the helper is on `PATH`, including inside an approved generated
-project with the `direnv` shell hook enabled.
+| Task | Go to |
+|---|---|
+| See the whole VS Code setup | [Screenshot walkthrough](#vs-code-walkthrough) |
+| Connect a new folder | [Generate project files](#generate-project-files) |
+| Keep existing environment or editor settings | [Existing `.envrc`](#existing-envrc) / [workspace](#existing-vs-code-workspace) |
+| Switch identities | [Change the context](#change-or-remove-a-folders-codex-context) |
+| Disconnect a folder | [Remove its context](remove-folder-context.md) |
 
-- New project context: [generate and approve the files](#generate-project-files),
-  then [run in the terminal](#run-from-the-terminal) or [open VS Code](#launch-an-isolated-window).
-- Existing setup: [merge an `.envrc`](#existing-envrc), [merge workspace settings](#existing-vs-code-workspace),
-  or [change the selected identity](#change-or-remove-a-folders-codex-context).
-- Remove the setup: [Remove Codex settings from a folder](remove-folder-context.md)
-  also covers a failed context-menu action.
+## VS Code walkthrough
 
-## Generate project files
+These screenshots use temporary, signed-out `work` and `personal` homes.
+Your normal homes default to `~/.codex-homes/NAME`. No real account or key is
+shown. Labels identify local configuration; verify
+the actual account inside Codex after signing in.
 
-Replace `work` with your existing identity and `/path/to/project` with your project path.
+### 1. Check VS Code and the Codex extension
+
+Install VS Code and [OpenAI's Codex extension](../INSTALLATION.md#1-install-prerequisites).
+The Codex sidebar is where you start a chat and check sign-in status.
+
+![VS Code with the Codex extension available and its signed-out sidebar.](images/vscode-01-setup.png)
+
+### 2. Create a home for each account
+
+Use recognizable names. Sign in with the intended account in each browser flow:
 
 ```bash
-./bin/codex-home project work "/path/to/project"
+codex-home create-subscription work
+codex-home login work
+codex-home create-subscription personal
+codex-home login personal
 ```
 
-Keep the command on one shell line. Quote paths containing spaces.
+![Terminal setup of separate work and personal identity homes.](images/vscode-02-identities.png)
 
-The generated `.envrc`:
+Each home keeps its own login, settings, and history. The demo stays signed out;
+complete sign-in yourself. For an API key, use [API setup](api-providers.md) or
+[U-M GPT setup](umgpt.md) instead.
 
-- exports `CODEX_IDENTITY` and `CODEX_HOME`;
-- checks that the selected home exists;
-- loads `$CODEX_HOME/.env` when present;
-- adds the directory containing the helper to `PATH` (the repository's `bin`
-  directory or the installed app's `Contents/Resources` directory);
-- watches the identity config and key file;
-- prints the active identity whenever `direnv` reloads.
+<a id="generate-project-files"></a>
 
-The generated `.vscode/<folder-name>.code-workspace` uses the project folder's
-name in the Explorer, shows `<folder-name> [CODEX: IDENTITY]` in the title,
-and sets a status-bar color.
+### 3. Review the project files
 
-You can review both files before use. They contain no credentials when generated, but
-`.envrc` is executable shell code with local paths and an identity name. The
-workspace also includes that name. Keep these files local to your computer.
+Assign the folder to `work`, then inspect what was generated:
 
-You can open a read-only `.envrc` review in VS Code with
-`./bin/codex-home project-review "/path/to/project"`, or use a text editor.
-Approve `.envrc` before opening the project:
+```bash
+codex-home project work "/path/to/project"
+```
+
+![Generated envrc and VS Code workspace files showing the chosen work identity and local window labels.](images/vscode-03-review.png)
+
+| Generated file | Purpose |
+|---|---|
+| `.envrc` | Selects the identity, checks its home, adds the helper to PATH, and watches configuration/key changes. It does not export credentials. |
+| `.vscode/<folder-name>.code-workspace` | Opens the folder with a `[CODEX: IDENTITY]` title and status-bar color. |
+
+`.envrc` is executable shell code. For a read-only review, use
+`codex-home project-review "/path/to/project"` and close the review window when done.
+Keep these files local; see [Git exclusions](#keep-project-files-local).
+
+### 4. Approve and launch through the helper
+
+Approve the file you reviewed, then open the identity's editor instance:
 
 ```bash
 direnv allow "/path/to/project"
+codex-home vscode work "/path/to/project"
 ```
 
-Then [run from the terminal](#run-from-the-terminal) or
-[open VS Code](#launch-an-isolated-window).
+![Approval and helper launch output showing the work identity and its dedicated VS Code user-data directory.](images/vscode-04-launch.png)
+
+The helper checks the project's identity and home before launching. Start a new
+Codex chat, then check the account/API status and permissions in the extension.
+
+### 5. Keep the windows easy to distinguish
+
+For another project, repeat steps 3–4 with `personal`. Each identity gets a
+separate editor-data directory. Window titles and `codex-home current` help
+spot the selected context:
+
+| Work | Personal |
+|---|---|
+| ![Work window with its identity label and current home.](images/vscode-05-work.png) | ![Personal window with its identity label and different current home.](images/vscode-05-personal.png) |
+
+Open either image at full size to read the paths. `current` checks the terminal
+context; the extension's account menu remains the account check. Ordinary
+**Open With → VS Code** can bypass this setup.
+
+To switch a configured folder, [change its context](#change-or-remove-a-folders-codex-context),
+review and approve again, and launch a fresh editor session. To choose command
+permissions, use the [sandbox decision table](security.md#optional-native-sandbox).
 
 ## Run from the terminal
 
 With the [direnv shell hook](../INSTALLATION.md#2-enable-direnv-in-your-shell)
-enabled and the project's `.envrc` approved:
+enabled and `.envrc` approved:
 
 ```bash
 cd "/path/to/project"
 codex-home run
 ```
 
-The helper uses `CODEX_IDENTITY`, which `direnv` sets when you enter the
-project. If no context is active, enter a configured project or use
-`codex-home run work` to select an identity explicitly. An explicit identity
-works without `direnv` and overrides the project selection for that launch.
+To select an identity without direnv, use `codex-home run work`. This overrides
+the active project selection for that launch. Implicit launches refuse a
+different identity/home recorded in a recognized generated project. Use the
+helper for its checks; direct Codex launches bypass them.
 
-Options work directly. Put `--` before a prompt or subcommand so it is not
-read as an identity name:
+Options pass through. Use `--` before a prompt or subcommand when omitting the
+identity name:
 
 ```bash
 codex-home run --model MODEL
@@ -80,87 +122,65 @@ codex-home run -- resume --last
 codex-home run -- "Explain this project"
 ```
 
-The identity name stays in the terminal title while Codex runs; see
-[terminal context labels](#terminal-context-labels) for title settings and
-recovery. Follow the [CLI identity checks](commands.md#check-the-selected-identity)
-before using a newly selected identity.
+[Verify the selected account and model](commands.md#check-the-selected-identity).
 
 ## Launch an isolated window
-
-Open the approved project with its selected identity:
 
 ```bash
 ./bin/codex-home vscode-project "/path/to/project"
 ```
 
-To also check that the project selects `work`, name the expected identity:
+This shortcut reads the configured identity. The walkthrough's explicit
+`vscode work` form also checks that the project selects `work`.
 
-```bash
-./bin/codex-home vscode work "/path/to/project"
-```
+The helper evaluates the approved direnv context once, checks the identity and
+home, and launches VS Code with filtered environment variables. New API
+identities supply their key to Codex through a credential command, outside the
+editor environment. [Opt in explicitly](security.md#environment-forwarding) to an SSH agent,
+proxy, or external secret-manager variable.
 
-The launcher loads the approved `direnv` environment once, verifies the identity
-and its home, then starts VS Code in that same environment with:
+Each identity uses `--user-data-dir <identity-home>/vscode-user-data` and
+`--new-window`. It reuses `~/.vscode/extensions` when present. An ordinary VS
+Code launch bypasses the helper's environment selection; `--new-window` alone
+does not separate processes. Close existing windows for that identity before
+changing its environment, and start a new Codex chat. The title alone does not
+verify the account; follow the [IDE checks](commands.md#check-the-selected-identity).
 
-```text
---new-window
---user-data-dir ~/.codex-homes/work/vscode-user-data
---extensions-dir ~/.vscode/extensions
-```
+Set overrides in the calling shell, before loading the project:
 
-Ordinary new windows can reuse a running VS Code process and its environment.
-A separate `--user-data-dir` starts an instance with the intended identity;
-`--new-window` alone does not do that.
+| Variable | Use |
+|---|---|
+| `CODEX_VSCODE_CLI` | Custom `code` command or executable path |
+| `CODEX_VSCODE_EXTENSIONS_DIR` | Existing extensions directory to reuse |
+| `CODEX_HOMES_ROOT` | Root containing the named identities |
 
-The launcher reuses the shared extensions directory when it exists, avoiding
-a separate Codex extension installation for each identity. To use custom paths:
+## Launch checks
 
-```bash
-export CODEX_VSCODE_CLI="/custom/path/to/code"
-export CODEX_VSCODE_EXTENSIONS_DIR="$HOME/.vscode/extensions"
-```
-
-Set editor overrides and `CODEX_HOMES_ROOT` in the calling shell, not in the
-project's `.envrc`. The launcher selects these settings before loading the
-project environment.
-
-On macOS the helper also checks standard application locations, so installing
-the `code` shell command is convenient but not mandatory.
-
-## Verify inside the window
-
-Start a new Codex chat, then follow the [VS Code identity checks](commands.md#check-the-selected-identity).
-They compare the project selection with the extension's account or API-key
-status and selected model. The window label alone cannot verify the account.
+| Symptom | Action |
+|---|---|
+| No active context | Enter the approved folder with the direnv hook, or use `codex-home run NAME`. |
+| direnv did not load, or identity/home mismatch | Run `direnv status`; check approval and matching `CODEX_IDENTITY`/`CODEX_HOME` in `.envrc`. Correct and review it before reapproving. |
+| Paths moved | Correct `.envrc`'s home, helper `PATH_add`, and API credential-command paths; review and reapprove. Reinstall Finder integration if the helper moved. |
+| VS Code CLI missing | Install its `code` shell command or set `CODEX_VSCODE_CLI` to the executable path. macOS also checks standard app locations. |
+| Wrong/default editor identity | Close affected windows, reopen through the helper, start a new chat, and verify the account. |
+| Codex extension missing | Point `CODEX_VSCODE_EXTENSIONS_DIR` at its existing directory, or install it in that isolated window. |
+| Terminal label hidden | Check [terminal title settings](#terminal-context-labels). |
 
 ## Keep project files local
 
-If the project is already in Git, `codex-home project` adds patterns to
-`.git/info/exclude`. For a repository folder named `project`, they are:
+For an existing Git repository, setup excludes the generated paths through
+`.git/info/exclude`, including the relative directory for nested projects.
+It refuses tracked destinations. For a root folder named `project`, the rules
+are `/.envrc` and `/.vscode/project.code-workspace`.
 
-```gitignore
-/.envrc
-/.vscode/project.code-workspace
-```
-
-For a project below the repository root, the patterns include that relative
-directory. `.git/info/exclude` is local repository metadata, so the exclusion
-itself is not committed or shared. The command also refuses to recreate either
-path if Git already tracks it.
-
-If the directory is not yet a Git repository, no exclusion is added. If Git is
-initialized later, add equivalent patterns to the new repository's
-`.git/info/exclude` before staging files.
-
-To share either file through Git, agree with your team on paths and identity
-names that work for everyone, then remove its local exclude pattern. Review
-each `.envrc` change before approving it. Check how the project uses any
-existing workspace before replacing it.
+If Git is initialized later, add those exact exclusions before staging files.
+To share generated files, first agree on portable paths and identity names,
+then remove their local exclusions. Review every `.envrc` change before approval.
 
 ## Existing `.envrc`
 
-The helper refuses to overwrite an existing `.envrc`. Add this block manually,
-using your identity's name and path:
+Setup refuses to overwrite it. Merge this identity block, preserving the
+project's other commands:
 
 ```bash
 export CODEX_IDENTITY="work"
@@ -171,26 +191,35 @@ if [[ ! -d "$CODEX_HOME" ]]; then
   return 1
 fi
 
-dotenv_if_exists "$CODEX_HOME/.env"
 watch_file "$CODEX_HOME/config.toml"
+if [[ -f "$CODEX_HOME/api-key.env" ]]; then
+  watch_file "$CODEX_HOME/api-key.env"
+fi
 if [[ -f "$CODEX_HOME/.env" ]]; then
   watch_file "$CODEX_HOME/.env"
 fi
 ```
 
-Then run `direnv allow` again.
-
-If a committed `.envrc` came from another computer, do not approve it until you
-have read the shell code and replaced paths that do not belong to your machine.
+Read the complete file, correct paths copied from another machine, then run
+`direnv allow` again. Do not load the identity's key with `dotenv_if_exists`;
+Codex's credential command reads it when authenticating. Older `env_key`
+identities can use [explicit migration](security.md#secret-exposure-boundaries).
+If setup stopped at this existing file, also create the workspace below;
+`project` has not generated it.
 
 ## Existing VS Code workspace
 
-The helper also refuses to replace an existing
-`.vscode/<folder-name>.code-workspace`. If you already use a workspace, merge
-the title and color settings into it. For a folder named `my-project`:
+The launcher opens `.vscode/<folder-name>.code-workspace` (or the legacy
+`.vscode/codex-context.code-workspace`). It does not select an arbitrary
+workspace filename. Keep any unrelated workspace intact.
+
+If the recognized file is missing, create it with this complete structure;
+`".."` opens the project folder from `.vscode`. If it exists, merge only the
+labels you need, preserving its folders, tasks, and other settings:
 
 ```json
 {
+  "folders": [{ "path": ".." }],
   "settings": {
     "window.title": "my-project [CODEX: WORK]",
     "workbench.colorCustomizations": {
@@ -201,185 +230,65 @@ the title and color settings into it. For a folder named `my-project`:
 }
 ```
 
-The label helps you recognize the account. The process environment determines
-which identity Codex uses; changing the label alone does not change accounts.
+Labels help identify windows; the launch environment selects the account.
+Keep a manually created workspace local with the [same Git exclusions](#keep-project-files-local).
+Custom files can launch through the helper; automatic review/change/reset
+commands still require untouched generated templates.
 
 ## Change or remove a folder's Codex context
 
-For removal, go directly to [Remove Codex settings from a folder](remove-folder-context.md).
-To switch the folder to another identity, continue below.
-
-Close the folder's isolated VS Code window before changing its identity. An
-already-running shell, VS Code process, or Codex chat keeps its old environment
-and identity until it is closed or reloaded.
-
-For untouched files created by `codex-home`, change the identity with:
+Close the affected editor and Codex chats, then switch an untouched generated
+context:
 
 ```bash
 ./bin/codex-home project-change NEW_IDENTITY "/path/to/project"
 ```
 
-The command verifies that `.envrc` and the generated workspace are untracked
-regular files that exactly match a recognized template. It then revokes the
-existing `direnv` approval, replaces both files, and leaves `.envrc` unapproved.
-If either replacement fails, it attempts to restore the original files. If
-restoration also fails, it retains backups and reports their location. Review
-`.envrc` before continuing:
+The helper requires untracked regular files matching its templates, revokes
+approval, and replaces both generated files. A failed replacement attempts
+restoration; failed restoration retains backups and reports their location.
+Read the new `.envrc`, approve it, and reopen through the helper.
 
-```bash
-direnv allow "/path/to/project"
-./bin/codex-home vscode-project "/path/to/project"
-```
+For removal, use the [dedicated removal procedure](remove-folder-context.md).
+Changing terminal directories, VS Code Profiles, or the account-menu sign-in
+does not switch an existing chat to another saved home.
 
 ### Manual recovery for a custom or shared setup
 
-If **Remove Codex context from this folder…** or `project-reset` fails, go to
-[Remove the settings manually](remove-folder-context.md#remove-the-settings-manually).
-The four steps cover backing up files, revoking approval, removing only the
-Codex settings, and checking a fresh session. They preserve your project tools,
-custom VS Code settings, and identity homes.
-
-For a custom setup you want to keep, first
-[back up and inspect its files](remove-folder-context.md#1-find-and-back-up-the-affected-files)
-and [revoke the existing approval](remove-folder-context.md#2-stop-loading-the-old-environment).
-Update only the [identity block](#existing-envrc) and the corresponding
-[workspace labels](#existing-vs-code-workspace), preserving unrelated commands
-and settings. Review the edited `.envrc`, approve it with `direnv allow`, and
-start a fresh editor session. A workspace migration can retain those settings
-in the [folder-named workspace](#generate-project-files); inspect existing files
-before renaming anything or changing local Git exclusions.
-
-## Switching identities
-
-A running Codex chat keeps its account when you change terminal directories.
-Open the new identity's workspace with `codex-home vscode`, then start a new
-chat.
-
-Codex's account menu signs out of the current home; it cannot select another
-saved `CODEX_HOME`. VS Code Profiles separate editor settings but still share
-a process environment, so use the helper to switch identities.
+[Back up the affected files](remove-folder-context.md#1-find-and-back-up-the-affected-files)
+and [revoke approval](remove-folder-context.md#2-stop-loading-the-old-environment).
+Update only the [identity block](#existing-envrc) and
+[workspace labels](#existing-vs-code-workspace). Preserve unrelated setup,
+review the complete `.envrc`, approve it, and launch a fresh editor session.
 
 ## Migrate a generated workspace
 
-For a project using `.vscode/codex-context.code-workspace`, run
-`project-change` with the identity already selected for that project:
-
-```bash
-./bin/codex-home project-change NAME "/path/to/project"
-```
-
-For untouched generated files, this replaces the generic workspace with
-`.vscode/<folder-name>.code-workspace` and updates its local Git exclusions.
-Review the generated `.envrc` and run `direnv allow` before reopening the
-project. From Finder, choose **Set or change Codex identity…** and select the
-same identity to perform this migration.
-
-For modified or shared files, use
-[manual recovery](#manual-recovery-for-a-custom-or-shared-setup). For duplicate
-Finder entries or Dock items pointing into `vscode-dock`, see
-[launcher recovery](macos-open-with.md#replace-obsolete-launcher-entries).
+For an untouched `.vscode/codex-context.code-workspace`, run
+[project-change](#change-or-remove-a-folders-codex-context) with the identity
+already selected. This creates the folder-named workspace, updates exclusions,
+and removes legacy key-loading lines. Review and reapprove it. Customized or
+shared files need [manual recovery](#manual-recovery-for-a-custom-or-shared-setup).
 
 ## Terminal context labels
 
-In an interactive terminal, `codex-home run` displays **[CODEX: NAME]** at
-launch and keeps it in the tab/window title while Codex runs. It clears the
-label on exit and restores the previous title when the terminal supports a
-title stack.
+Interactive `codex-home run` shows **[CODEX: NAME]** and keeps it in the terminal
+title while running. It clears the label on exit and restores the previous
+title where supported. A launch-only `tui.terminal_title=[]` override prevents
+Codex replacing it; saved settings stay intact. Redirected streams and
+`TERM=dumb` skip title controls. Plain `codex` uses its own title settings.
 
-Running `codex` directly uses its own title settings, even inside a `direnv`
-project. The helper labels the terminal title, not Codex's footer. It uses a
-launch-only `tui.terminal_title=[]` override to keep Codex from replacing the
-title, leaving saved settings alone. It skips terminal controls when streams
-are redirected or `TERM=dumb`.
+For hidden labels, enable application-controlled titles in
+[iTerm2](https://iterm2.com/documentation-session-title.html) or
+[Terminal](https://support.apple.com/guide/terminal/trml15228/mac).
+U-M launches also show the broader scope's low-sensitivity warning; see
+[scope boundaries](umgpt.md#guardrail-boundaries).
 
-If the label is hidden, check your terminal's title settings. In iTerm2, allow
-applications to change the title and include the session name in the title.
-See [iTerm2 session titles](https://iterm2.com/documentation-session-title.html),
-[Terminal window titles](https://support.apple.com/guide/terminal/trml15228/mac),
-and [Codex TUI settings](https://learn.chatgpt.com/docs/config-file/config-sample).
+## Other launch environments
 
-U-M launches also check the [identity's model scope](umgpt.md#guardrail-boundaries).
-The broader `umgpt-low` scope prints **LOW-SENSITIVITY DATA ONLY**. These local
-checks do not establish institutional approval; follow the
-[U-M data guidance](umgpt.md#check-data-permissions-first) before use.
-
-## macOS Dock names
-
-By default, the helper launches the installed VS Code app with an
-identity-specific `--user-data-dir`. This keeps each identity's settings and
-environment separate while using the same installed application. Window
-titles and status-bar colors identify the context.
-
-Set `CODEX_VSCODE_DOCK_LABEL=1` to use a complete application copy named
-`VS Code - work` (or your selected identity). The `default` identity uses
-`VS Code - default`. Its location is:
-
-```text
-$CODEX_HOME/vscode-editor/VS Code - NAME.app
-```
-
-The helper launches that application's own `code` CLI with the approved
-project environment and identity-specific `--user-data-dir`. The CLI handles
-both startup and requests for an already-running identity. The copied app's
-contents and vendor signature remain unchanged; its directory supplies the
-identity name. On APFS, copy-on-write cloning shares unchanged file data with
-the source application. Where cloning is unavailable, macOS makes a normal
-copy, which can use a full application's worth of storage per identity. The
-original VS Code installation remains available for ordinary use.
-
-On macOS, the Finder integration creates a small handler app at
-`~/Applications/VS Code - NAME.app` for each configured identity. File managers
-that expose folder handlers in an **Open With** menu, such as ForkLift, can use
-it to set up an unconfigured folder for `NAME` or open one already configured
-for that identity. In Finder, use **Quick Actions > Open in Codex Project** or
-**Services > Open in Codex Project**. That app reads the folder's current
-context. Named editor copies, if enabled,
-remain under `CODEX_HOME/vscode-editor`.
-
-When named copies are enabled, hover over a running editor's Dock icon to read
-its identity. Clicking that running icon focuses the editor. The icon artwork
-remains VS Code's.
-
-**After quitting, start the identity through the Finder Quick Action, a
-file-manager Open With handler, or `codex-home`.** Do not pin or directly open
-the generated editor copies: macOS launches them without the helper's
-`CODEX_HOME`, approved environment, or `--user-data-dir` arguments.
-
-If you use named copies, update the original VS Code installation and let the
-helper refresh its copies; avoid updating individual identity copies
-separately. Refresh occurs when that identity is stopped. If its editor is
-running, quit it and reopen the project through the helper or Finder Quick
-Action. Check the window titles so you close only the intended identity.
-Reinstall Codex Project after updating the helper.
-
-Custom `CODEX_VSCODE_CLI` wrappers and Linux use the supplied CLI. To request
-a named copy for a terminal launch on macOS:
-
-```bash
-CODEX_VSCODE_DOCK_LABEL=1 ./bin/codex-home vscode work "/path/to/project"
-```
-
-This override changes how helper launches select the editor; it does not
-rename an already-running instance. Quit that identity before switching launch
-modes. Its workspace title, status color, and isolated user data are retained.
-
-To remove individual or all generated **Open With** entries, see
-[Remove extra VS Code entries from Open With](macos-open-with.md#remove-extra-vs-code-entries-from-open-with-on-macos),
-including how to stop terminal launches from recreating them.
-
-## Open from Finder (macOS only)
-
-The optional Finder Quick Action opens the app, which loads the project's
-approved `direnv` settings before opening VS Code. Right-click a folder and
-choose **Quick Actions > Open in Codex Project** (or **Services**). See
-[Finder integration](macos-open-with.md).
-
-## Remote SSH and dev containers
-
-This helper is designed for local VS Code and local identity homes. In Remote
-SSH, WSL, or a dev container, the Codex extension and terminal may run on the
-remote side where the host's paths do not exist. Install the helper and create
-identity homes in that execution environment; never copy credentials into a
-repository or container image.
+- **macOS:** [Finder integration](macos-open-with.md) and
+  [optional named Dock copies](macos-open-with.md#optional-named-dock-copies).
+- **Remote SSH, WSL, containers:** install the helper and create identities on
+  the side running Codex. Host paths may not exist there. Keep credentials out
+  of repositories and container images.
 
 Reference: [VS Code isolated instances](https://code.visualstudio.com/docs/configure/command-line#_isolating-vs-code-instances).

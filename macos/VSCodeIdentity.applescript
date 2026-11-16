@@ -34,26 +34,24 @@ on open selectedItems
 end open
 
 on approveProject(launcherPath, folderPath, identityName)
-	set projectName to do shell script "/usr/bin/basename " & quoted form of folderPath
-	set approvalMessage to "Project: " & projectName & return & "Identity: " & identityName & return & "File: .envrc" & return & return & "Approve & Open lets direnv execute the generated file and opens VS Code with this identity. Review in VS Code lets you inspect a read-only copy first. Credentials remain in the identity home."
+	set projectName to «event sysoexec» "/usr/bin/basename " & quoted form of folderPath
+	set reviewFingerprint to my runCommand({launcherPath, "project-fingerprint", folderPath})
+	set reviewMessage to "Project: " & projectName & return & "Identity: " & identityName & return & "File: .envrc" & return & return & "Review the generated environment in VS Code before approving it. Credentials remain in the identity home."
 
-	repeat
-		try
-			set reviewChoice to display dialog approvalMessage with title "Approve Codex Environment" buttons {"Leave Unapproved", "Review in VS Code", "Approve & Open"} default button "Approve & Open" cancel button "Leave Unapproved"
-		on error errorMessage number errorNumber
-			if errorNumber is -128 then return false
-			error errorMessage number errorNumber
-		end try
-		set chosenButton to button returned of reviewChoice
-		if chosenButton is "Leave Unapproved" then return false
+	try
+		set reviewChoice to «event sysodlog» reviewMessage given «class appr»:"Review Codex Environment", «class btns»:{"Leave Unapproved", "Review in VS Code"}, «class dflt»:"Review in VS Code", «class cbtn»:"Leave Unapproved"
+		if «class bhit» of reviewChoice is not "Review in VS Code" then return false
+		my runCommand({launcherPath, "project-review", folderPath})
 
-		if chosenButton is "Review in VS Code" then
-			my runCommand({launcherPath, "project-review", folderPath})
-		else if chosenButton is "Approve & Open" then
-			my runCommand({"direnv", "allow", folderPath})
-			return true
-		end if
-	end repeat
+		set approvalMessage to "Approve the environment you just reviewed for “" & projectName & "”? Approve & Open lets direnv execute that exact generated context and opens VS Code with identity “" & identityName & "”. If the context changed, approval will be refused."
+		set approvalChoice to «event sysodlog» approvalMessage given «class appr»:"Approve Reviewed Environment", «class btns»:{"Leave Unapproved", "Approve & Open"}, «class dflt»:"Leave Unapproved", «class cbtn»:"Leave Unapproved"
+		if «class bhit» of approvalChoice is not "Approve & Open" then return false
+		my runCommand({launcherPath, "project-approve", folderPath, reviewFingerprint})
+		return true
+	on error errorMessage number errorNumber
+		if errorNumber is -128 then return false
+		error errorMessage number errorNumber
+	end try
 end approveProject
 
 on runCommand(commandArguments)

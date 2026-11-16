@@ -1,159 +1,143 @@
-# Security model
+# Permissions and credentials
 
-Codex Contexts helps you choose the right account and keep its local files
-separate. Credentials still need protection, and each provider's data rules
-still apply.
+Account selection and command permissions are separate controls.
 
-## Safety model at a glance
+## Optional native sandbox
 
-The repository holds the helper. A project's `.envrc` selects an identity.
-That identity's home holds credentials, settings, and session history.
+| What do you need? | Set this default |
+|---|---|
+| Edit and test a project | `codex-home set-sandbox work workspace-write` |
+| Review with fewer write permissions | `codex-home set-sandbox work read-only` |
+| Use the remaining Codex configuration | `codex-home set-sandbox work inherit` |
 
-```mermaid
-%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#F6F8FA", "primaryTextColor": "#24292F", "primaryBorderColor": "#57606A", "lineColor": "#57606A", "secondaryColor": "#FFFFFF", "tertiaryColor": "#DDF4FF"}, "mindmap": {"padding": 18, "useMaxWidth": false}}}%%
-mindmap
-  root((Responsible Codex setup))
-    Version-controlled tooling
-      Source repository
-      local_clone["Stable local clone<br/>$HOME/Developer/codex-contexts"]
-    Project identity selection
-      project/.envrc
-        Review before direnv allow
-        Selects one CODEX_HOME
-    Private identity state
-      $HOME/.codex
-      $HOME/.codex-homes/IDENTITY
-      Credentials, sessions, logs, and settings
-      Never sync, share, or commit
-```
+The two sandbox modes select `on-request` approvals with user review. Restart
+the CLI or reload VS Code and start a new chat. Check `/status` and
+`/permissions`, or the IDE permissions control.
 
-Keep credentials out of both public and private repositories. Use your own
-login or API key and keep identity homes private on your computer.
+`inherit` removes root `sandbox_mode`, `approval_policy`, and
+`approvals_reviewer` settings; it does not restore old values or disable the
+sandbox. Existing network settings and extra writable roots are preserved.
+Project settings, profiles, CLI options, runtime changes, and managed policy
+can affect effective permissions. These are defaults, not enforced policy.
 
-## Before using an identity
+<details>
+<summary>Custom configurations and platform requirements</summary>
 
-1. Use only your own approved account or API credential; never copy another
-   user's identity home.
-2. Inspect the project's `.envrc` before approving it.
-3. Launch with `codex-home run`, or open VS Code with `codex-home vscode`.
-4. Follow the [CLI or VS Code verification steps](commands.md#check-the-selected-identity)
-   for the selected identity, authentication, and model.
-5. Start a new chat after changing identities.
-6. Keep regulated or restricted data out of any provider not explicitly
-   approved for that data.
-7. Treat U-M GPT scope names and warning labels as local guardrails, not as an
-   institutional approval or data classification.
+`set-sandbox` refuses symlinked configs, multiline root strings, and the
+separate `default_permissions`/`permissions` configuration system. Edit those
+manually. Nested profile and plugin settings are preserved.
 
-## Where data lives
+The installed Codex provides enforcement. See its
+[sandbox guide](https://learn.chatgpt.com/docs/sandboxing) for platform
+requirements, including `bubblewrap` on Linux, and its
+[configuration precedence](https://learn.chatgpt.com/docs/config-file/config-basic#configuration-precedence).
 
-| Data | Location | Commit? |
-|---|---|---|
-| ChatGPT login token (file-backed identities) | `$CODEX_HOME/auth.json` | Never |
-| API key | `$CODEX_HOME/.env` | Never |
-| Provider URL/model | `$CODEX_HOME/config.toml` | Keep private by default |
-| Recommended U-M GPT model defaults | `config/umgpt-models.toml` in this repository | Yes; model IDs only, no credentials |
-| User's U-M GPT model defaults | `$CODEX_HOMES_ROOT/umgpt-models.toml` | Keep local; model IDs only, no credentials |
-| Generated U-M GPT picker catalog | `<identity-home>/model-catalog.json` | Keep local; gateway model IDs and Codex metadata, no credentials |
-| Project identity selection | `<project>/.envrc` | Review; credential-free when generated, but executable and machine-specific |
-| VS Code visual label | `<project>/.vscode/<folder-name>.code-workspace` | Review; includes the local project and identity labels |
-| VS Code settings and workspace state | `$CODEX_HOME/vscode-user-data` | Never by default |
-| Named VS Code application on macOS | `$CODEX_HOME/vscode-editor/VS Code - <identity>.app` | No; generated from the installed editor |
-| Codex sessions/logs | Under `$CODEX_HOME` | Never by default |
-
-`create-subscription` configures file-backed credentials for new identities,
-normally cached in that home. `default` keeps its existing storage settings.
-Administrator-enforced authentication and storage policies still apply and
-cannot be overridden by the helper; see [credential storage](https://learn.chatgpt.com/docs/auth#credential-storage).
-
-New identity directories and private files are created with owner-only
-permissions. `set-key` reads without terminal echo, safely quotes the stored
-value, and uses mode `600`.
-
-## Secret exposure boundaries
-
-The selected API key is available to Codex, VS Code, and their child processes.
-Other processes running as your user may also be able to inspect it. Separate
-identities do not protect against untrusted code running under your account.
-The helper loads the selected identity's `.env`; it does not scrub unrelated
-inherited environment variables or credentials.
-
-`probe-models` and `models` feed a temporary curl configuration over standard
-input so the bearer key is not present in `ps` output or shell history. The key
-still reaches the HTTPS client and remote provider as required.
-
-The private `.env` is sourced by the helper and parsed by `direnv`. Let
-`codex-home set-key` create it; do not replace it with untrusted content.
+</details>
 
 ## Risks and limitations
 
-| Risk or limitation | What it means | Safe practice |
+| Control | Helps with | Does not provide |
 |---|---|---|
-| Wrong identity | An ordinary VS Code launch may not load the project's `.envrc` and may fall back to `~/.codex`. | Launch with `codex-home vscode` or **Codex Project**, then [verify the selected identity](commands.md#check-the-selected-identity). |
-| Untrusted `.envrc` | An `.envrc` is executable shell code, even when it contains no credential value. | Read every new or changed `.envrc` before running `direnv allow`. The Finder app requires opening the review and choosing **Approve & Open** before approving generated changes. |
-| Credential exposure | API keys are placed in the selected Codex/VS Code process environment. Processes running as the same operating-system user may be able to inspect them. | Use `codex-home set-key`; never paste keys or `auth.json` into source files, chat, issues, or logs. Lock and encrypt the computer according to organizational policy. |
-| Cloud synchronization | Identity homes contain credentials, sessions, logs, and configuration. | Keep `~/.codex` and `~/.codex-homes` on the local computer and out of synchronized folders. |
-| Local paths | Generated files contain local paths and identity labels. They may reveal usernames or fail on another computer. | Keep them local. The helper adds Git exclusions when possible. To share them, agree on portable paths, remove the exclusions, and review each change before `direnv allow`. |
-| Existing chats | Changing windows or identity variables does not change the account or provider of a chat already in progress. | Start a new Codex chat after switching identities. |
-| Provider compatibility | A model list or text reply does not test Codex tool calls or streaming. | Run `models` and `doctor`, then test tool calls in a temporary project. |
-| Data governance | Identity separation does not determine whether a provider is approved for PHI, PII, controlled research data, or unpublished data. | Follow applicable organizational and institutional data-handling rules and the provider agreement before sending data. |
-| Local U-M GPT model scopes | `create-umgpt` pins GPT and o-series text IDs to U-M's Azure OpenAI-backed Toolkit gateway. This is distinct from direct OpenAI products. `create-umgpt-low` permits broader text models and adds a **LOW-SENSITIVITY DATA ONLY** warning. Direct `codex` launches or manual identity edits are outside this guardrail. | Launch through `codex-home`, [verify the selected identity](commands.md#check-the-selected-identity), and check current U-M approval for the model, workflow, and data. Migrate an older U-M identity with `set-umgpt-scope` before use. |
-| Stale U-M GPT defaults | The repository file records recommendations and the local file records user choices. Neither tracks the live gateway or establishes approval. | Use `models umgpt` or `models umgpt-low` to inspect the live scoped list. Update a local choice with `set-umgpt-default`, or use `reset-umgpt-defaults` to deliberately adopt newly pulled repository recommendations. Recheck institutional guidance before use. |
-| U-M GPT model restrictions | Public U-M model descriptions list Claude Sonnet 5, Claude Opus 5, and Llama 4 Maverick as not authorized for PHI. This does not establish approval for other models or for a Codex CLI/API workflow. | Check the [current ITS service entry](https://safecomputing.umich.edu/dataguide/service/75) (U-M sign-in may be required), the [model descriptions](https://its.umich.edu/computing/ai/gpt-in-depth#models), and your unit's requirements before using sensitive data. |
-| No security sandbox | Separate `CODEX_HOME` and VS Code user-data directories prevent accidental state mixing; they do not isolate hostile code or processes. | Run only trusted code and use an appropriate managed or sandboxed environment for sensitive work. |
+| Separate identity homes | Accidental account and session mix-ups | Required-account enforcement across launchers, or isolation from other processes running as your OS user |
+| Restricted environment and command-backed API auth | Keeping inherited credentials and new identities' keys out of the editor/command environment | Isolation from Codex itself or other same-user processes |
+| Native command sandbox | Bounding model-generated command writes and networking | Isolation of the entire app, editor extensions, manual shell commands, or external services |
+| HTTPS validation | Accidental plaintext provider requests | A firewall for arbitrary commands or protection from a malicious selected provider |
+| Finder review and approval checks | Detecting generated-context edits before or during approval | A transactional guarantee against hostile concurrent same-user processes |
 
-## Storage recommendations
+Use a separate OS account, container, or VM for untrusted code. A sandbox that
+permits reads is not a credential vault. Use a provider and workflow approved
+for your data; [U-M scope labels do not establish institutional approval](umgpt.md#check-data-permissions-first).
 
-- Keep `~/.codex-homes` outside Dropbox, iCloud, shared drives, and repositories.
-- Do not paste keys or `auth.json` contents into chat, tickets, logs, or command
-  arguments.
-- Do not put secrets in `.envrc`, `config.toml`, static HTTP headers, or VS Code
-  settings.
-- Give accounts or projects that need separate credentials their own identity.
-- Limit key permissions and set expiration dates and spending caps where
-  available. Check the provider's retention settings.
-- Keep generated `.envrc` and Codex VS Code workspace files machine-local by
-  default. The project command adds local Git exclusions when possible. If a
-  shared project intentionally commits one, remove that exclusion and review
-  its executable code, identity label, and absolute paths before every
-  approval.
+## Where data lives
 
-Choose another root outside a synchronized home when necessary:
+| Data | Location |
+|---|---|
+| ChatGPT login | `$CODEX_HOME/auth.json` by default; optional OS keyring at creation |
+| API key | `$CODEX_HOME/api-key.env` for managed command-backed auth; legacy `env_key` uses `.env` |
+| Settings, sessions, logs, VS Code state | Under `$CODEX_HOME` |
+| Project selection | Project `.envrc` and `.vscode/*.code-workspace`; no keys |
+
+Keep identity homes local, private, outside Git and cloud sync. New homes and
+credential files use owner-only permissions. `default` keeps its existing
+credential-storage choice; managed authentication requirements still apply.
+Do not put keys in command arguments, config headers, chat, issues, or logs.
+
+## Secret exposure boundaries
+
+The helper reads one selected key assignment as data, never shell code.
+`set-key` uses a hidden prompt, mode `600`, atomic replacement, and rejects
+symlinked key paths. New API identities use native command-backed auth: the
+key goes to Codex through a private command's stdout, outside the editor and
+generated-command environments. Codex and other processes running as your user
+can still read the key file. Legacy `env_key` configurations expose the selected
+key in the launched application and its children until explicitly migrated:
 
 ```bash
-export CODEX_HOMES_ROOT="$HOME/.local/share/codex-homes"
+codex-home migrate-api-auth NAME
 ```
 
-This variable must be consistent when creating, assigning, and launching those
-identities. Put it in your shell configuration, not only in one terminal.
+Migration updates a recognized provider and moves its valid `.env` key to
+`api-key.env`, preserving the key's contents. Codex automatically exports a
+home's `.env`, so managed launches refuse a leftover file. Custom settings,
+conflicting files, and symlinks are refused; interrupted changes restore the
+originals or retain them at a reported recovery path. Close and reopen the
+identity's editor/CLI processes afterward to clear inherited keys.
+
+New project contexts leave keys out of the surrounding shell. Use
+`codex-home run` for API identities. Refresh an untouched older context with:
+
+```bash
+codex-home project-change NAME PROJECT_DIR
+```
+
+Review and reapprove the generated files. For a hand-edited context, remove
+its `dotenv_if_exists` key-loading line before review and `direnv allow`.
+An `.envrc` is executable code: read it before approving it.
+
+## Environment forwarding
+
+Need an SSH agent, proxy, certificate path, or external secret-manager key?
+Opt in to exact names:
+
+```bash
+CODEX_CONTEXTS_ENV_ALLOW='SSH_AUTH_SOCK HTTPS_PROXY SSL_CERT_FILE' codex-home run work
+```
+
+Runtime/UI/toolchain variables and `LC_*` locales are retained. Unrelated
+credentials are omitted. Names are space-separated; wildcards and loader
+variables such as `BASH_ENV`, `PYTHONPATH`, `NODE_OPTIONS`, `LD_*`, and `DYLD_*`
+are blocked. Managed command-backed keys always use `api-key.env` and are
+removed from forwarded variables. Legacy/custom `env_key` configurations can
+use an external key only when its exact name is opted in and no stored key exists.
+
+Direct `codex`/`code` launches do not apply this filter. An already running
+VS Code process keeps its environment; close that identity's windows before
+reopening to replace it.
+
+## Provider checks
+
+Checks cover `openai_base_url`, `chatgpt_base_url`, and provider `base_url` and
+`model_catalog_url` in saved settings, ancestor project configs, selected
+profiles, and CLI overrides. Checked URLs require HTTPS; exact `localhost`,
+`127.0.0.1`, and `[::1]` HTTP endpoints are allowed for local development.
+Catalog request URLs may include query parameters; base URLs may not.
+Model discovery ignores automatic curl configuration, does not follow
+redirects, and supplies the bearer key over standard input.
+
+U-M launches additionally reject provider-routing and custom catalog URL
+overrides and validate model scope in both CLI and VS Code. Direct launches
+and manual runtime changes are outside these helper checks.
 
 ## Rotation and revocation
 
-Replace an API key with the hidden prompt:
+Replace a key with `codex-home set-key NAME`, then revoke the old key at its
+provider. For a ChatGPT identity, run `codex-home run NAME logout` and
+`codex-home login NAME`.
 
-```bash
-./bin/codex-home set-key NAME
-```
-
-Revoke the old key at the provider. For a subscription identity:
-
-```bash
-./bin/codex-home run NAME logout
-./bin/codex-home login NAME
-```
-
-The helper has no command to delete an identity home. Inspect it before
-removing it manually: deletion also removes its credentials, sessions, logs,
-skills, and VS Code data.
-
-`codex-home project-reset "/path/to/project"` removes only the helper-generated
-`.envrc`, workspace file, and their local Git exclusions. It does not delete
-the selected identity home.
+Removing a [project context](remove-folder-context.md) keeps its identity
+home. The helper does not delete identity homes or their credentials/history.
 
 ## Skill links
 
-`share-skills` links skills from an existing source directory (by default,
-`~/.codex/skills`) into additional identity homes. Changes to a linked skill
-reach every identity that uses it. Review those changes before using the
-skill with another account or kind of data. Codex also discovers skills outside
-`CODEX_HOME`, including global user and repository locations; see
-[skill discovery boundaries](skills.md#skill-discovery-boundaries).
+Shared skills can change behavior across every linked identity. Review their
+changes and [discovery boundaries](skills.md#skill-discovery-boundaries).

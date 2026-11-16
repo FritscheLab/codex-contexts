@@ -59,10 +59,10 @@ export CODEX_DOCK_TEST_ENV="$DOCK_TEST_ROOT/env"
 [[ "$(macos_vscode_executable "$CODEX_VSCODE_CLI")" == "$fake_executable" ]] || fail 'symlinked CLI resolution'
 if macos_vscode_executable /custom/wrapper >/dev/null; then fail 'accepted an unrelated CLI wrapper'; fi
 
-create_subscription dock-unit >/dev/null
+create_api dock-unit https://provider.example.test/v1 model-a DOCK_TEST_KEY >/dev/null
 create_subscription dock-other >/dev/null
 unit_home="$CODEX_HOMES_ROOT/dock-unit"
-printf 'DOCK_TEST_KEY=synthetic-not-for-bundle\n' >"$unit_home/.env"
+printf 'DOCK_TEST_KEY=synthetic-not-for-bundle\n' >"$unit_home/api-key.env"
 project_one="$DOCK_TEST_ROOT/"'project $one [x]'
 project_two="$DOCK_TEST_ROOT/project two"
 mkdir -p "$project_one" "$project_two"
@@ -86,7 +86,7 @@ prepare_macos_vscode_editor dock-unit "$unit_home" "$fake_executable" >/dev/null
 quiet_check "$DOCK_TEST_TOOL" vscode dock-unit "$project_one" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$named_cli" ]] || fail 'cold launch bypassed named CLI'
 grep -Fxq -- "$project_one/.vscode/project \$one [x].code-workspace" "$CODEX_DOCK_TEST_ARGS" || fail 'project path was split or expanded'
-grep -Fxq -- "$unit_home|dock-unit|synthetic-not-for-bundle" "$CODEX_DOCK_TEST_ENV" || fail 'wrong identity environment'
+grep -Fxq -- "$unit_home|dock-unit|" "$CODEX_DOCK_TEST_ENV" || fail 'wrong identity or leaked API key in editor environment'
 printf '%s' "$$" >"$unit_home/vscode-user-data/code.lock"
 quiet_check "$DOCK_TEST_TOOL" vscode dock-unit "$project_two" >/dev/null
 [[ "$(head -n 1 "$CODEX_DOCK_TEST_ARGS")" == "$named_cli" ]] || fail 'warm launch bypassed named CLI'
@@ -133,11 +133,11 @@ diff -qr "$fake_app" "$app" >/dev/null || fail 'concurrent preparation damaged b
 inode="$(stat -f %i "$app")"
 set_source_version 4
 if (
-  mv() {
+  macos_rename_bundle() {
     if [[ "$1" == *'/.build.'*'/VS Code - dock-unit.app' && "$2" == "$app" ]]; then
       return 1
     fi
-    command mv "$@"
+    macos_data_helper rename "$@"
   }
   prepare_macos_vscode_editor dock-unit "$unit_home" "$fake_executable"
 ) >/dev/null 2>&1; then fail 'ignored failed installation'; fi

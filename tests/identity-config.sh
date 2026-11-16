@@ -53,11 +53,17 @@ grep -Fq 'Model          : top-level-model' "$CONFIG_TEST_ROOT/output" ||
   fail 'large config lost its top-level model'
 
 # A rejected URL or key must never invoke curl, even from a conditional caller.
-curl() {
-  : >"$CONFIG_TEST_ROOT/curl-called"
-  cat >"$CONFIG_TEST_ROOT/curl-config"
+mkdir -p "$CONFIG_TEST_ROOT/bin"
+export CONFIG_TEST_CURL_ROOT="$CONFIG_TEST_ROOT"
+export CODEX_CONTEXTS_ENV_ALLOW="$CODEX_CONTEXTS_ENV_ALLOW CONFIG_TEST_CURL_ROOT"
+cat >"$CONFIG_TEST_ROOT/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+  : >"$CONFIG_TEST_CURL_ROOT/curl-called"
+  cat >"$CONFIG_TEST_CURL_ROOT/curl-config"
   printf '%s\n' '{"data":[{"id":"model-a"}]}'
-}
+EOF
+chmod +x "$CONFIG_TEST_ROOT/bin/curl"
+export PATH="$CONFIG_TEST_ROOT/bin:$PATH"
 for invalid_value in $'first\nsecond' $'first\rsecond'; do
   expect_failure 'must fit on one line' fetch_model_ids \
     https://provider.example.test/v1 "$invalid_value"

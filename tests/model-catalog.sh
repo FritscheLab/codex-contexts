@@ -46,7 +46,7 @@ EOF
 "$CATALOG_TEST_TOOL" create-umgpt gpt-test >/dev/null
 "$CATALOG_TEST_TOOL" create-umgpt-low claude-test >/dev/null
 for name in umgpt umgpt-low; do
-  printf 'UMGPT_API_KEY=synthetic-catalog-key\n' > "$CODEX_HOMES_ROOT/$name/.env"
+  printf 'UMGPT_API_KEY=synthetic-catalog-key\n' > "$CODEX_HOMES_ROOT/$name/api-key.env"
   printf '\n[projects."/example"]\ntrust_level = "trusted"\n' >> "$CODEX_HOMES_ROOT/$name/config.toml"
   "$CATALOG_TEST_TOOL" refresh-models "$name" > "$CATALOG_TEST_ROOT/output"
   "$CATALOG_TEST_TOOL" show "$name" >/dev/null
@@ -99,7 +99,8 @@ if (validate_umgpt_identity_config umgpt) >/dev/null 2>&1; then
   fail 'normal identity accepted a multiline model ID'
 fi
 printf 'model_catalog_json = "/custom/catalog.json"\n' > "$CATALOG_TEST_ROOT/custom-setting"
-cat "$CATALOG_TEST_ROOT/custom-setting" "$CATALOG_TEST_ROOT/config-before" > "$CODEX_HOMES_ROOT/umgpt-low/config.toml"
+sed '/^model_catalog_json[[:space:]]*=/d' "$CATALOG_TEST_ROOT/config-before" > "$CATALOG_TEST_ROOT/config-without-catalog"
+cat "$CATALOG_TEST_ROOT/custom-setting" "$CATALOG_TEST_ROOT/config-without-catalog" > "$CODEX_HOMES_ROOT/umgpt-low/config.toml"
 expect_failure umgpt-low 'uses another model_catalog_json'
 "$CATALOG_TEST_TOOL" create-subscription subscription >/dev/null
 expect_failure subscription 'requires a scoped U-M GPT identity'
@@ -159,7 +160,7 @@ for scope in openai low; do
     "$CATALOG_TEST_TOOL" create-umgpt-low claude-3-5-sonnet "$name" >/dev/null
     default_model=claude-3-5-sonnet
   fi
-  printf 'UMGPT_API_KEY=synthetic-catalog-key\n' > "$CODEX_HOMES_ROOT/$name/.env"
+  printf 'UMGPT_API_KEY=synthetic-catalog-key\n' > "$CODEX_HOMES_ROOT/$name/api-key.env"
   "$CATALOG_TEST_TOOL" refresh-models "$name" >/dev/null
   ordered_catalog="$CODEX_HOMES_ROOT/$name/model-catalog.json"
   {
@@ -192,7 +193,7 @@ umgpt_order = ["o3", "gpt-5.9", "gpt-4o", "o3", "gpt-unavailable"]
 umgpt_low_order = ["gemini-3.10-flash", "claude-sonnet-5", "gpt-6-sol"]
 EOF
 for name in umgpt umgpt-low; do
-  printf 'UMGPT_API_KEY=synthetic-catalog-key\n' > "$CODEX_HOMES_ROOT/$name/.env"
+  printf 'UMGPT_API_KEY=synthetic-catalog-key\n' > "$CODEX_HOMES_ROOT/$name/api-key.env"
   "$CATALOG_TEST_TOOL" refresh-models "$name" >/dev/null
 done
 jq -e '[.models[:3][].slug] == ["gpt-4o","o3","gpt-5.9"] and

@@ -17,22 +17,52 @@ provider-specific assumptions to the common workflow.
 Follow [INSTALLATION.md](INSTALLATION.md), then run:
 
 ```bash
+for script in bin/* libexec/*.sh tests/*.sh; do bash -n "$script"; done
 ./tests/test.sh
 ```
 
-Keep the helper compatible with Bash 3.2, including the system Bash on macOS.
+Keep the helper compatible with Bash 3.2; macOS CI selects the stock system Bash.
+The security helper requires Python 3.11+ and only uses its standard library.
 The default tests must run without credentials or a live provider.
 
+`bin/codex-home` owns command dispatch. Start a change in the owning library:
+
+| Behavior | Source |
+|---|---|
+| Accounts, credentials, permissions, and CLI launch | `libexec/identities.sh` |
+| Model scopes, defaults, discovery, and catalogs | `libexec/models.sh` |
+| Project files, approval, and selection checks | `libexec/projects.sh` |
+| VS Code launch | `libexec/vscode.sh` |
+| macOS apps and shared bundle operations | `libexec/macos.sh`, `libexec/macos_bundles.py` |
+| TOML validation and credential/environment boundary | `libexec/codex_contexts.py` |
+
+Libraries share the entry point's paths and functions; loading them performs no
+application actions. macOS bundles copy the same complete `libexec` directory.
+
 For focused checks, run `bash tests/identity-config.sh` for malformed defaults,
-large configurations, and model-request validation. On macOS,
+large configurations, and model-request validation. Run
+`bash tests/sandbox-config.sh` for sandbox defaults, nested policy preservation,
+and unsafe configuration refusal. `bash tests/security-launch.sh` checks URL
+validation, literal key loading, environment filtering, U-M config overrides,
+and reviewed-context approval with synthetic inputs. On macOS,
 `bash tests/macos-open-with.sh` checks Finder app installation failures and
-backup recovery using temporary apps and intercepted registration calls. Both
+backup recovery using temporary apps and intercepted registration calls. These checks
 are included in `./tests/test.sh`.
+`bash tests/macos-uninstall.sh` checks that unrelated namesake applications and
+symlinked ownership evidence are left untouched.
+`bash tests/macos-install.sh` checks concurrent installs and rollback without
+registering real applications.
+`bash tests/packaging.sh` checks the bundled layout;
+`bash tests/api-auth.sh` checks key handling and conservative migration.
 
 The [CI workflow](.github/workflows/ci.yml) runs offline tests with command
-mocks on Linux and macOS. It does not install Codex or validate configuration
-against a real Codex release. With Codex installed, you can opt into doctor
-checks that may contact configured services:
+mocks on Linux and macOS, then checks generated settings and separate local
+auth files against pinned Codex **0.156.1**. Run that contract check locally with
+`python3 -I tests/native-codex.py`; it uses temporary homes and synthetic keys,
+plus a loopback Responses fixture for real tool calls and sandbox enforcement.
+Use `--codex /absolute/path/to/codex` to check another binary, including an IDE's
+bundled release. This does not verify GUI sign-in or a remote provider. Doctor
+checks may contact configured services:
 
 ```bash
 CODEX_CONTEXTS_LIVE_TESTS=1 ./tests/test.sh
@@ -47,14 +77,7 @@ and provider support can change.
 2. Add or update regression tests for behavior changes.
 3. Update user documentation when commands, generated files, risks, or
    prerequisites change.
-4. Run the test suite and Bash syntax checks locally:
-
-   ```bash
-   for script in bin/* tests/*.sh; do
-     bash -n "$script"
-   done
-   ./tests/test.sh
-   ```
+4. Run the [development checks](#development-setup).
 
 5. Open a pull request explaining what changes for users, how you tested it,
    and any remaining limits. Use synthetic examples and remove sensitive
@@ -81,8 +104,9 @@ task.
 | Model sources, catalog behavior, and picker recovery | `docs/model-reference.md` |
 | Command syntax and identity verification | `docs/commands.md` |
 | Symptom lookup | `docs/troubleshooting.md` |
-| Finder setup and menu cleanup | `docs/macos-open-with.md` |
+| macOS Finder/Dock setup and menu cleanup | `docs/macos-open-with.md` |
 | Removing a folder's context | `docs/remove-folder-context.md` |
+| README illustration | `docs/images/codex-contexts.svg` |
 
 Write for someone completing a task: give the action, expected result, and a
 recovery link. Keep essential warnings beside the affected action. Use
@@ -90,8 +114,10 @@ recovery link. Keep essential warnings beside the affected action. Use
 `CODEX_HOME` directory, and **project context** for a project's identity selection.
 Use preferred command names in tutorials; keep old names in compatibility notes.
 
-When moving a section, update internal links and leave a useful destination at
-its old anchor. Check the Markdown links and Mermaid diagrams with the
+Keep troubleshooting as a symptom index: give a short diagnostic and link to
+the owning fix instead of copying its steps. When moving a section, update
+internal links and preserve useful anchors where the content remains.
+Check Markdown links with the
 [documentation CI checks](.github/workflows/ci.yml), and walk through the changed
 reading path. Compare helper examples with `./bin/codex-home help` and the
 implementation. Verify changed upstream claims against current official sources.

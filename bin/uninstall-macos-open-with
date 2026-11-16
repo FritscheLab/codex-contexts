@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+CODEX_CONTEXTS_LIB="$(cd "$SCRIPT_DIR/../libexec" && pwd -P)"
+source "$CODEX_CONTEXTS_LIB/macos.sh"
+
 APP_DIR="${CODEX_MACOS_APP_DIR:-$HOME/Applications}"
 APP_PATH="$APP_DIR/Codex Project.app"
 BACKUP_DIR="$APP_DIR/.codex-project-backups"
@@ -9,7 +13,7 @@ SERVICES_DIR="${CODEX_MACOS_SERVICES_DIR:-$HOME/Library/Services}"
 WORKFLOW_PATH="$SERVICES_DIR/Open in Codex Project.workflow"
 WORKFLOW_BACKUP_DIR="$SERVICES_DIR/.codex-project-backups"
 TRASH_DIR="${CODEX_MACOS_TRASH_DIR:-$HOME/.Trash}"
-VSCODE_OPEN_WITH_DIR="$HOME/Applications"
+VSCODE_OPEN_WITH_DIR="$APP_DIR"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 
 die() {
@@ -19,44 +23,87 @@ die() {
 
 [[ "$(uname -s)" == "Darwin" ]] || die "this uninstaller is only for macOS"
 
-[[ ! -L "$APP_PATH" && ! -L "$WORKFLOW_PATH" ]] || die "refusing to remove a symlinked app or Quick Action"
-if [[ -e "$WORKFLOW_PATH" ]]; then
-  [[ "$(/usr/bin/plutil -extract CodexContextsManagedWorkflow raw "$WORKFLOW_PATH/Contents/Info.plist" 2>/dev/null)" == 'codex-contexts-quick-action-v1' ]] ||
-    die "refusing to remove an unrelated Quick Action: $WORKFLOW_PATH"
+# Do not create absent installation directories. Pin the existing parents,
+# then wait for any installation before checking ownership or removing anything.
+app_parent_present=0
+workflow_parent_present=0
+install_locks=()
+if [[ -d "$APP_DIR" ]]; then
+  APP_DIR="$(cd "$APP_DIR" && pwd -P)"
+  APP_PATH="$APP_DIR/Codex Project.app"
+  VSCODE_OPEN_WITH_DIR="$APP_DIR"
+  app_parent_present=1
+  install_locks+=("$(macos_install_lock_path "$APP_DIR")")
 fi
-if [[ -d "$VSCODE_OPEN_WITH_DIR" ]]; then
+if [[ -d "$SERVICES_DIR" ]]; then
+  SERVICES_DIR="$(cd "$SERVICES_DIR" && pwd -P)"
+  WORKFLOW_PATH="$SERVICES_DIR/Open in Codex Project.workflow"
+  workflow_parent_present=1
+  install_locks+=("$(macos_install_lock_path "$SERVICES_DIR")")
+fi
+if [[ "${#install_locks[@]}" != 0 ]]; then
+  macos_acquire_locks "${install_locks[@]}" || die "could not lock the Finder installation"
+fi
+if [[ "$app_parent_present" == 1 ]]; then
+  [[ ! -L "$APP_PATH" ]] || die "refusing to remove a symlinked app or Quick Action"
+  if [[ -e "$APP_PATH" ]]; then
+    macos_owned_bundle project "$APP_PATH" >/dev/null || die "refusing to remove an unrelated app: $APP_PATH"
+  fi
+fi
+if [[ "$workflow_parent_present" == 1 ]]; then
+  [[ ! -L "$WORKFLOW_PATH" ]] || die "refusing to remove a symlinked app or Quick Action"
+  if [[ -e "$WORKFLOW_PATH" ]]; then
+    macos_owned_bundle workflow "$WORKFLOW_PATH" >/dev/null || die "refusing to remove an unrelated Quick Action: $WORKFLOW_PATH"
+  fi
+fi
+
+uninstall_handler() (
+  local bundle="$1" handler_id handler_name lock
+  # A child retains the parent's directory locks without reopening their fds.
+  lock="$(macos_handler_lock_path "$bundle")" || return 0
+  macos_acquire_locks "$lock" || die "could not lock the Finder app: $bundle"
+  if ! handler_id="$(macos_owned_bundle handler "$bundle")"; then
+    printf 'Kept Finder app whose ownership changed while waiting: %s\n' "$bundle" >&2
+    return 0
+  fi
+  if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+    "$LSREGISTER" -u "$bundle" >/dev/null 2>&1 || true
+  fi
+  [[ "$(macos_bundle_identity "$bundle")" == "$handler_id" ]] || die "Finder app changed before removal: $bundle"
+  mkdir -p "$TRASH_DIR"
+  handler_name="$(basename "$bundle" .app)"
+  mv "$bundle" "$TRASH_DIR/$handler_name.$(date +%Y%m%d-%H%M%S).$$.app"
+)
+if [[ "$app_parent_present" == 1 ]]; then
   while IFS= read -r -d '' vscode_handler; do
     [[ ! -L "$vscode_handler" ]] || continue
-    marker="$vscode_handler/Contents/Resources/codex-contexts-open-with"
-    [[ -f "$marker" && "$(sed -n '1p' "$marker")" == 'codex-contexts-vscode-open-with-v1' ]] || continue
-    if [[ "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
-      "$LSREGISTER" -u "$vscode_handler" >/dev/null 2>&1 || true
-    fi
-    mkdir -p "$TRASH_DIR"
-    handler_name="$(basename "$vscode_handler" .app)"
-    mv "$vscode_handler" "$TRASH_DIR/$handler_name.$(date +%Y%m%d-%H%M%S).$$.app"
+    macos_owned_bundle handler "$vscode_handler" >/dev/null || continue
+    uninstall_handler "$vscode_handler"
   done < <(find "$VSCODE_OPEN_WITH_DIR" -maxdepth 1 -type d -name 'VS Code - *.app' -print0)
 fi
-if [[ ! -e "$APP_PATH" && ! -e "$WORKFLOW_PATH" ]] && \
-  { [[ ! -d "$VSCODE_OPEN_WITH_DIR" ]] ||
+if [[ ( "$app_parent_present" == 0 || ! -e "$APP_PATH" ) &&
+  ( "$workflow_parent_present" == 0 || ! -e "$WORKFLOW_PATH" ) ]] && \
+  { [[ "$app_parent_present" == 0 ]] ||
     ! find "$VSCODE_OPEN_WITH_DIR" -maxdepth 1 -type d -name 'VS Code - *.app' -print -quit | grep -q .; }; then
   printf 'Codex Project and its Quick Action are not installed at the selected locations.\n'
   exit 0
 fi
 
-if [[ -e "$APP_PATH" && "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
+if [[ "$app_parent_present" == 1 && -e "$APP_PATH" && "${CODEX_MACOS_SKIP_REGISTER:-0}" != "1" && -x "$LSREGISTER" ]]; then
   if ! "$LSREGISTER" -u "$APP_PATH"; then
     printf 'Warning: Launch Services did not unregister the app immediately.\n' >&2
   fi
 fi
 
 mkdir -p "$TRASH_DIR"
-if [[ -e "$APP_PATH" ]]; then
+if [[ "$app_parent_present" == 1 && -e "$APP_PATH" ]]; then
+  macos_owned_bundle project "$APP_PATH" >/dev/null || die "app changed before removal: $APP_PATH"
   TRASH_PATH="$TRASH_DIR/Codex Project.$(date +%Y%m%d-%H%M%S).$$.app"
   mv "$APP_PATH" "$TRASH_PATH"
   printf 'Moved Finder launcher to Trash: %s\n' "$TRASH_PATH"
 fi
-if [[ -e "$WORKFLOW_PATH" ]]; then
+if [[ "$workflow_parent_present" == 1 && -e "$WORKFLOW_PATH" ]]; then
+  macos_owned_bundle workflow "$WORKFLOW_PATH" >/dev/null || die "Quick Action changed before removal: $WORKFLOW_PATH"
   WORKFLOW_TRASH_PATH="$TRASH_DIR/Open in Codex Project.$(date +%Y%m%d-%H%M%S).$$.workflow"
   mv "$WORKFLOW_PATH" "$WORKFLOW_TRASH_PATH"
   printf 'Moved Finder Quick Action to Trash: %s\n' "$WORKFLOW_TRASH_PATH"

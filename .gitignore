@@ -1,7 +1,13 @@
 .DS_Store
+__pycache__/
+*.py[cod]
 
-# Secrets belong in ~/.codex-homes/<identity>/.env, never in this repository.
+# Identity credentials belong outside this repository.
 .env
 .env.*
+api-key.env
+auth.json
+.api-key.codex-home.*
+.api-auth-migration.*/
 !.env.example
 
