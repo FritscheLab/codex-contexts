@@ -2,13 +2,13 @@
 
 # U-M GPT model snapshot
 
-- **Generated:** 2026-09-24
+- **Generated:** 2026-11-16
 - **Source:** `https://api.toolkit.umgpt.umich.edu/v1/models`
 - **Advertised to identity:** `umgpt`
-- **Advertised IDs:** 44
-- **Matches `umgpt`:** 19
-- **Matches `umgpt-low`:** 38
-- **Excluded from both text scopes:** 6
+- **Advertised IDs:** 48
+- **Matches `umgpt`:** 18
+- **Matches `umgpt-low`:** 41
+- **Excluded from both text scopes:** 7
 
 > This is a dated observation of one credential’s `/models` response, not a runtime catalog, compatibility claim, or institutional approval list. “Matches” means only that an ID passes the local name-based filter in this checkout. Run `codex-home models NAME` for live results.
 
@@ -16,10 +16,10 @@ Runtime validation never reads this file.
 
 | Model ID | `umgpt` rule | `umgpt-low` rule | Local classification |
 |---|---|---|---|
-| `Llama-4-Maverick-17B-128E-Instruct-FP8` | Does not match | Matches | Other ID without image/embedding |
-| `Llama-4-Scout-17B-16E-Instruct` | Does not match | Matches | Other ID without image/embedding |
 | `claude-fable-5-1` | Does not match | Matches | Other ID without image/embedding |
+| `claude-fable-5-2` | Does not match | Matches | Other ID without image/embedding |
 | `claude-haiku-4-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-haiku-5-5` | Does not match | Matches | Other ID without image/embedding |
 | `claude-opus-4-6` | Does not match | Matches | Other ID without image/embedding |
 | `claude-opus-4-7` | Does not match | Matches | Other ID without image/embedding |
 | `claude-opus-4-8` | Does not match | Matches | Other ID without image/embedding |
@@ -27,7 +27,10 @@ Runtime validation never reads this file.
 | `claude-opus-5-5` | Does not match | Matches | Other ID without image/embedding |
 | `claude-sonnet-4-6` | Does not match | Matches | Other ID without image/embedding |
 | `claude-sonnet-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-sonnet-5-5` | Does not match | Matches | Other ID without image/embedding |
 | `deepseek-v4-flash-0731` | Does not match | Matches | Other ID without image/embedding |
+| `deepseek-v4-pro` | Does not match | Matches | Other ID without image/embedding |
+| `deepseek-v4.1-flash` | Does not match | Matches | Other ID without image/embedding |
 | `gemini-3-flash-preview` | Does not match | Matches | Other ID without image/embedding |
 | `gemini-3.1-flash-image-preview` | Does not match | Does not match | ID contains image or embedding |
 | `gemini-3.5-flash` | Does not match | Matches | Other ID without image/embedding |
@@ -51,12 +54,13 @@ Runtime validation never reads this file.
 | `gpt-6-astra` | Matches | Matches | GPT/o-series ID without image/embedding |
 | `gpt-6-luna` | Matches | Matches | GPT/o-series ID without image/embedding |
 | `gpt-6-sol` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-6.1-sol` | Matches | Matches | GPT/o-series ID without image/embedding |
 | `gpt-image-1.5` | Does not match | Does not match | ID contains image or embedding |
 | `gpt-image-2` | Does not match | Does not match | ID contains image or embedding |
 | `gpt-image-2.5-flare` | Does not match | Does not match | ID contains image or embedding |
+| `gpt-image-2.5-sunburst` | Does not match | Does not match | ID contains image or embedding |
+| `grok-4.6` | Does not match | Matches | Other ID without image/embedding |
 | `kimi-k2.5` | Does not match | Matches | Other ID without image/embedding |
 | `kimi-k3` | Does not match | Matches | Other ID without image/embedding |
-| `o1` | Matches | Matches | GPT/o-series ID without image/embedding |
-| `o3` | Matches | Matches | GPT/o-series ID without image/embedding |
 | `text-embedding-3-large` | Does not match | Does not match | ID contains image or embedding |
 | `text-embedding-3-small` | Does not match | Does not match | ID contains image or embedding |

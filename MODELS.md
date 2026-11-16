@@ -26,7 +26,7 @@ Open the path printed after **Edit your settings:**, normally
 umgpt = "gpt-6-luna"
 umgpt_low = "gpt-6-luna"
 
-umgpt_order = ["gpt-6-sol", "gpt-6-astra", "o3"]
+umgpt_order = ["gpt-6.1-sol", "gpt-6-sol", "gpt-6-astra"]
 umgpt_low_order = ["claude-sonnet-5", "gemini-3.8-flash", "claude-haiku-4-5"]
 ```
 
@@ -52,44 +52,60 @@ Restart the CLI, or run **Developer: Reload Window** in VS Code and start a
 
 ## Compare models
 
-**24 September 2026 · USD per million tokens.** Scores use Artificial Analysis
-**Intelligence Index v4.3.2**; higher is better. Prices use provider rates,
-with only Opus 5.5's verified 10% U-M adjustment. [Sources and pricing conditions](docs/model-reference.md#prices-and-limits).
+**16 November 2026 · USD per million tokens.** Prices are
+[U-M Toolkit standard estimates](https://its.umich.edu/computing/ai/pricing).
+Scores use Artificial Analysis **Intelligence Index v5.0.1**; higher is better.
+[Price conditions, evaluator settings, and sources](docs/model-reference.md#prices-and-limits).
 
-This is a dated reference. Check the linked provider prices before spending,
-and run `codex-home models NAME` for the models currently available to your identity.
+This shortlist covers 18 currently advertised text models. Eleven have a
+verified score for the displayed effort; missing scores remain blank rather
+than borrowing a result from another index version or model revision.
 
-| Model | Index | Input | Output | Context¹ | Tokens/s² |
-|---|---:|---:|---:|---:|---:|
-| [GPT-6 Luna](https://artificialanalysis.ai/models/gpt-6-luna-medium) | 29 | $0.10 | $0.50 | 1.05M | 142.8 |
-| [GPT-6 Sol](https://artificialanalysis.ai/models/gpt-6-sol-medium) | 40 | $2.00 | $10.00 | 1.05M | 114.3 |
-| [GPT-6 Astra](https://artificialanalysis.ai/models/gpt-6-astra-medium) | 50 | $10.00 | $50.00 | 1.05M | 45.3 |
-| [Claude Haiku 4.5](https://artificialanalysis.ai/models/claude-4-5-haiku-reasoning) | 17 | $1.00 | $5.00 | 200K | 96.1 |
-| [Claude Sonnet 5](https://artificialanalysis.ai/models/claude-sonnet-5-medium) | 28 | $2.00 | $10.00 | 1M | 67.1 |
-| [Claude Opus 5.5](https://artificialanalysis.ai/models/claude-opus-5-5-medium) | 51 | $4.40 | $22.00 | 1M | 77.9 |
-| [Claude Fable 5.1](https://artificialanalysis.ai/models/claude-fable-5-1-medium/) | 49 | $10.00 | $50.00 | 1M | 54.1 |
-| [Gemini 3.8 Flash](https://artificialanalysis.ai/models/gemini-3-8-flash-medium) | 40 | $0.75 | $3.75 | 1M input | — |
-| [DeepSeek V4 Flash 0731](https://artificialanalysis.ai/models/deepseek-v4-flash) | 34 | $0.14 | $0.28 | 1M | 221.1 |
-| [Kimi K3](https://artificialanalysis.ai/models/kimi-k3) | 44 | $3.00 | $15.00 | 1M | 35.3 |
-| [Kimi K2.5](https://artificialanalysis.ai/models/kimi-k2-5) | 23* | $0.60 | $3.00 | 256K | — |
-| [Llama 4 Maverick](https://artificialanalysis.ai/models/llama-4-maverick) | 10* | $0.20 | $0.80 | 1M | 114.9 |
-| [Llama 4 Scout](https://artificialanalysis.ai/models/llama-4-scout/) | 8* | $0.10 | $0.30 | 328K | 100.1 |
+| Model | Evaluated effort | Index | U-M input | U-M output | Tokens/s¹ |
+|---|---|---:|---:|---:|---:|
+| [GPT-6 Luna](https://artificialanalysis.ai/models/creators/openai) | Medium | 18 | $0.10 | $0.50 | 95 |
+| [GPT-6 Sol](https://artificialanalysis.ai/models/creators/openai) | Medium | — | $2.00 | $10.00 | — |
+| [GPT-6 Astra](https://artificialanalysis.ai/models/creators/openai) | Medium | 52 | $10.00 | $50.00 | 44 |
+| [GPT-6.1 Sol](https://artificialanalysis.ai/models/creators/openai) | Medium | 46 | $2.00 | $10.00 | 52 |
+| [Claude Haiku 4.5](https://artificialanalysis.ai/models/creators/anthropic) | Reasoning | 7 | $1.00 | $5.00 | 116 |
+| [Claude Haiku 5.5](https://artificialanalysis.ai/models/creators/anthropic) | Medium | 25 | $0.10 | $0.50 | 221 |
+| [Claude Sonnet 5](https://artificialanalysis.ai/models/creators/anthropic) | Medium | — | $2.20 | $11.00 | 102 |
+| [Claude Sonnet 5.5](https://artificialanalysis.ai/models/creators/anthropic) | Medium† | 31 | $2.00 | $10.00 | 128 |
+| [Claude Opus 5.5](https://artificialanalysis.ai/models/creators/anthropic) | Medium† | 48 | $4.40 | $22.00 | 107 |
+| [Claude Fable 5.1](https://artificialanalysis.ai/models/creators/anthropic) | Medium† | 43 | $11.00 | $55.00 | 87 |
+| [Claude Fable 5.2](https://artificialanalysis.ai/models/creators/anthropic) | Medium† | 56 | $8.80 | $44.00 | 104 |
+| [Gemini 3.8 Flash](https://artificialanalysis.ai/models/creators/google) | Medium | 30 | $0.75 | $3.75 | 118 |
+| [Grok 4.6](https://artificialanalysis.ai/models/grok-4-6) | Xhigh | 31 | $1.25 | $6.00 | 71 |
+| [DeepSeek V4 Flash 0731](https://artificialanalysis.ai/models/deepseek-v4-flash) | Max | — | $0.19 | $0.51 | 141 |
+| [DeepSeek V4.1 Flash](https://artificialanalysis.ai/models/deepseek-v4-1-flash) | Revision unverified | — | $0.30 | $1.20 | — |
+| [DeepSeek V4 Pro](https://artificialanalysis.ai/models/deepseek-v4-pro) | Revision unverified | — | $1.74 | $3.48 | — |
+| [Kimi K3](https://artificialanalysis.ai/models/kimi-k3) | Max | — | $3.00 | $15.00 | 48 |
+| [Kimi K2.5](https://artificialanalysis.ai/models/kimi-k2-5) | Reasoning | — | $0.60 | $3.00 | 43 |
 
-\* Estimated by the evaluator; independent evaluation on this index is pending.
-¹ Rounded provider limits, not verified U-M limits. ² Output speed after the
-initial wait, not measured through U-M. “—” means not reported.
-[Test settings, cached-input prices, exact limits, and qualifications](docs/model-reference.md).
+† Evaluator's default fallback configuration. ¹ External end-to-end output
+speed, including time to first token; not measured through U-M. “—” means no
+verified comparable value. Efforts differ where shown; these are not settings
+the helper applies. [Detailed qualifications](docs/model-reference.md#benchmark-notes).
 
-In this shortlist, Sonnet 5 at medium effort is the closest Claude option to
-Luna on this index. Haiku is the cheaper Claude alternative. Luna is the
-repository default for both identities.
+Rates depend on context/cache and can change. Haiku 5.5's provider has a
+higher-price tier above 100K input tokens; GPT-6.1 Sol's provider has a tier
+above 272K. [Provider conditions versus U-M estimates](docs/model-reference.md#context-and-cache-conditions).
+Token prices do not determine cost per completed task.
 
-![Intelligence Index v4.3.2 versus input and output token prices. Green diamonds mark Luna, the default for both identities; hollow circles mark estimated scores.](docs/images/model-cost-performance-direct.png)
+Luna remains the repository default for both identities. Compare models on
+your own tasks and verify the selected route before use; a listed ID and an
+external benchmark do not establish Codex tool-call compatibility.
 
-Higher and further left means a higher score at a lower token price; token
-price does not measure cost per completed task. The chart also shows Sonnet
-at high effort (index 32; 65.4 tokens/s). Small score gaps may not be meaningful.
+![Intelligence Index v5.0.1 versus U-M standard input and output token estimates for eleven models with verified scores. Green diamonds identify Luna, the repository default. Seven models with unavailable or unresolved scores are omitted.](docs/images/model-cost-performance-umgpt.png)
 
-[Full-size chart](docs/images/model-cost-performance-direct.png) · [SVG](docs/images/model-cost-performance-direct.svg) · [Data and sources (CSV)](docs/data/model-benchmarks.csv)
+Higher and further left indicates a higher benchmark score at a lower token
+price. No uncertainty intervals are supplied; small score gaps may not be
+meaningful. [Full-size chart](docs/images/model-cost-performance-umgpt.png) ·
+[Editable SVG](docs/images/model-cost-performance-umgpt.svg) ·
+[Current data and sources (CSV)](docs/data/model-benchmarks-current.csv)
+
+The [September 2026 comparison](docs/model-comparison-2026-09-24.md), its
+provider prices, and v4.3.2 scores are archived separately. The two index
+versions are not directly comparable.
 
 [Back to README](README.md) · [U-M GPT setup](docs/umgpt.md)

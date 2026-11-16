@@ -126,7 +126,20 @@ implementation. Verify changed upstream claims against current official sources.
 If a change affects the printable cheatsheet, update its source and inspect the
 rebuilt PDF as described below.
 
-## Update the U-M GPT model snapshot
+## Update model availability, prices, and benchmarks
+
+Availability, prices, and benchmark scores have separate sources and dates.
+Update the current comparison in `docs/data/model-benchmarks-current.csv`,
+`MODELS.md`, and `docs/model-reference.md` together. Use exact U-M Toolkit
+prices, explicit evaluator effort and index version, and blank values for
+unavailable scores or unresolved model aliases. Regenerate and inspect the
+PNG/SVG with `python3 docs/build-model-benchmarks.py`.
+
+Keep the September CSV, figure, and
+[comparison archive](docs/model-comparison-2026-09-24.md) historical. Do not mix
+benchmark versions or relabel old provider prices as current Toolkit charges.
+
+### Update the U-M GPT model snapshot
 
 The checked-in snapshot is a dated record for review, not a runtime catalog.
 With a configured, scoped `umgpt` identity and stored key, regenerate it from

@@ -7,146 +7,108 @@
 
 ## Prices and limits
 
-Checked **2026-09-24**. The [comparison table](../MODELS.md#compare-models) contains
-input/output prices, context sizes, and performance. The additional values and
-primary sources below complete that table. All prices are USD per million tokens.
-
-| Model | Cached input | Maximum output | Price source | Limit source |
-|---|---:|---:|---|---|
-| GPT-6 Luna | $0.01 | 128,000 | [OpenAI](https://developers.openai.com/api/docs/pricing) | [Model](https://developers.openai.com/api/docs/models/gpt-6-luna) |
-| GPT-6 Sol | $0.20 | 128,000 | [OpenAI](https://developers.openai.com/api/docs/pricing) | [Model](https://developers.openai.com/api/docs/models/gpt-6-sol) |
-| GPT-6 Astra | $1.00 | 128,000 | [OpenAI](https://developers.openai.com/api/docs/pricing) | [Model](https://developers.openai.com/api/docs/models/gpt-6-astra) |
-| Claude Haiku 4.5 | $0.10 | 64K | [Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) | [Models](https://platform.claude.com/docs/en/models/overview) |
-| Claude Sonnet 5 | $0.20 | 128K | [Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) | [Models](https://platform.claude.com/docs/en/models/overview) |
-| Claude Opus 5.5 | $0.20 base | 128K | [Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) | [Models](https://platform.claude.com/docs/en/models/overview) |
-| Claude Fable 5.1 | $0.25 | 128K | [Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) | [Models](https://platform.claude.com/docs/en/models/overview) |
-| Gemini 3.8 Flash | $0.075 | 65,536 | [Google](https://ai.google.dev/gemini-api/docs/pricing) | [Model](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash) |
-| DeepSeek V4 Flash 0731 | $0.03 | Not verified | [Together AI](https://www.together.ai/pricing) | [Model](https://www.together.ai/models/deepseek-v4-flash-0731) |
-| Kimi K3 | $0.30 | Not verified | [Together AI](https://www.together.ai/pricing) | [Kimi guide](https://platform.kimi.ai/docs/guide/kimi-k3-quickstart) |
-| Kimi K2.5 | $0.10 | Not verified | [Novita](https://novita.ai/console/pricing-console) | [Moonshot](https://huggingface.co/moonshotai/Kimi-K2.5) |
-| Llama 4 Maverick FP8 | Not verified | Not verified | [DeepInfra](https://deepinfra.com/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8) | Same endpoint |
-| Llama 4 Scout | Not verified | Not verified | [DeepInfra](https://deepinfra.com/meta-llama/Llama-4-Scout-17B-16E-Instruct) | Same endpoint |
+Checked **2026-11-16**. The [current comparison](../MODELS.md#compare-models)
+uses the standard input/output estimates posted by
+[U-M ITS for the GPT Toolkit](https://its.umich.edu/computing/ai/pricing), in USD
+per million tokens. These replace the September comparison's mixture of direct
+provider prices and an Opus-specific adjustment. Each current CSV row records
+its price source and verification date; no provider markup is inferred.
 
 ### Pricing basis
 
-Use standard, global provider prices where available. For open models, use
-the named host's published rate. This does not identify U-M's deployment or
-guarantee its bill. The comparison applies only the observed **Opus 5.5
-input/output adjustment of 10%**. U-M does not publish cache prices; no cache
-surcharge or blanket family fee is inferred.
+Use the Toolkit rates for planning Toolkit work. A direct provider's price can
+differ from U-M's posted rate. ITS says estimates depend on context and cache
+and are subject to change. Confirm actual charges and quotas in the
+[Toolkit portal](https://toolkit.umgpt.umich.edu/).
 
-<details>
-<summary>Evidence: provider prices versus posted U-M prices</summary>
+The displayed columns cover standard input and output tokens. They do not
+quote cache writes/reads, batch discounts, image generation, or a complete
+cost per task. A Codex task can make several requests and generate reasoning
+tokens. The source does not publish a separate U-M cache or long-context
+schedule, so provider conditions below are context rather than a U-M quote.
 
-This compares base provider prices with U-M's published input/output prices;
-a difference does not establish its cause. Source rates: [U-M](https://its.umich.edu/computing/ai/pricing),
-[Anthropic](https://platform.claude.com/docs/en/about-claude/pricing), and the
-named hosting sources in the table above.
+### Context and cache conditions
 
-| Model | Provider input / output | U-M input / output | Observed difference |
-|---|---:|---:|---|
-| Haiku 4.5 | $1 / $5 | $1 / $5 | None |
-| Sonnet 5 | $2 / $10 | $2 / $10 | None |
-| Opus 5.5 | $4 / $20 | $4.40 / $22 | +10% on both |
-| Fable 5.1 | $10 / $50 | $10 / $50 | None |
-| Kimi K2.5 (Novita) | $0.60 / $3 | $0.60 / $3 | None |
-| Llama 4 Maverick (DeepInfra) | $0.20 / $0.80 | $0.35 / $1.41 | +75% / +76.25%; different hosting rates |
-| Llama 4 Scout (DeepInfra) | $0.10 / $0.30 | $0.20 / $0.78 | +100% / +160%; different hosting rates |
-| DeepSeek V4 Flash 0731, Kimi K3 | See comparison table | Not listed | Cannot infer an adjustment |
+- **Claude Haiku 5.5:** Anthropic's base input/output rates apply through 100K
+  input tokens; above that, its rates are five times higher. Cache rates also
+  change. Its provider limits are 1M context and 128K output.
+  [Exact model specifications](https://platform.claude.com/docs/en/models/haiku-5-5/overview).
+- **GPT-6.1 Sol:** OpenAI's provider schedule doubles input/cache prices and
+  increases output prices by 50% when input exceeds 272K tokens, for the full
+  request. Provider limits are 1,050,000 context and 128,000 output tokens.
+  [Exact model specifications](https://developers.openai.com/api/docs/models/gpt-6.1-sol).
+- **Grok and DeepSeek:** direct-provider rates and context/time tiers can differ
+  from Toolkit estimates. Use the exact route's terms rather than transferring
+  a direct rate to the U-M endpoint.
+  [Grok model specifications](https://docs.x.ai/developers/models/grok-4.6),
+  [DeepSeek pricing](https://api-docs.deepseek.com/quick_start/pricing/).
 
-Use the [Toolkit portal](https://toolkit.umgpt.umich.edu/) for actual charges.
-
-</details>
-
-### Special rates and context limits
-
-- **GPT-6:** the displayed prices apply through 272K input tokens. Above that,
-  input/cache prices double and output prices rise 50% for the full request.
-  Short-context cache writes cost $0.125 / $2.50 / $12.50 for Luna / Sol / Astra.
-  All three have 1,050,000 context, capped at 922,000 input and 128,000 output.
-  See the OpenAI sources above.
-- **Claude:** five-minute cache writes cost $1.25 / $2.50 / $5 / $12.50 for
-  Haiku / Sonnet / Opus / Fable; one-hour writes cost $2 / $4 / $8 / $20.
-  These are unadjusted Anthropic base prices. See the Anthropic sources above.
-- **Gemini 3.8 Flash:** displayed rates apply through 2026-12-31 and double on
-  2027-01-01 in Google's schedule; this does not establish future U-M rates.
-  Cache storage is extra. The input limit is 1,048,576 tokens, separately from
-  maximum output. See the Google sources above.
-- **DeepSeek:** Together lists the exact `0731` model. DeepSeek's own Flash
-  alias now routes to V4.1, so its current price is not substituted for 0731.
-  [Alias changes](https://api-docs.deepseek.com/updates/).
-- **Llama:** the selected DeepInfra endpoints provide 1,048,576 context for
-  Maverick FP8 and 327,680 for Scout. Scout's native 10M model context is not
-  that host's serving limit. See the endpoint sources above.
-
-Published limits can differ from U-M's route. Instructions, tools, and history
-also consume context in Codex. These reference values do not change the
-helper's conservative runtime metadata; see [catalog behavior](#how-picker-catalogs-work).
-
-<details>
-<summary>Azure OpenAI deployment-specific pricing</summary>
-
-The [Azure pricing page](https://azure.microsoft.com/en-us/pricing/details/azure-openai/)
-directs readers to Microsoft's GPT-6 announcement while Sol and Luna prices
-are being added to its main table. Its **Global Standard, short-context** rates
-match OpenAI, checked 2026-09-24.
-
-US Data Zone Standard rates are 10% higher and EU Data Zone Standard rates
-20% higher for these GPT-6 models. The source also lists cache-write and
-long-context rates. These list prices do not establish the deployment type or
-rate billed by U-M. [Microsoft's deployment-specific price table](https://azure.microsoft.com/en-us/blog/gpt-6-astra-sol-and-luna-for-production-agents-in-microsoft-foundry/).
-
-</details>
+Provider limits do not verify U-M deployment limits or change the helper's
+conservative runtime metadata. Instructions, tools, and history also consume
+context. See [catalog behavior](#how-picker-catalogs-work).
 
 ## Benchmark notes
 
-All capability scores use **Artificial Analysis Intelligence Index v4.3.2**,
-a composite of 10 evaluations. It is not a percentage accuracy. See the
-[evaluator's methodology](https://artificialanalysis.ai/methodology/intelligence-benchmarking)
-and the model-specific links in the [comparison table](../MODELS.md#compare-models).
+The current comparison uses **Artificial Analysis Intelligence Index v5.0.1**,
+which incorporates nine evaluations. Higher scores indicate higher aggregate
+benchmark performance; the score is not percentage accuracy or a guarantee
+of success on a particular task.
+[Evaluator methodology](https://artificialanalysis.ai/methodology/intelligence-benchmarking).
 
-| Models | Evaluator setting |
-|---|---|
-| GPT-6 Luna, Sol, Astra; Gemini 3.8 Flash | Medium |
-| Sonnet 5 | Adaptive, medium in the table; high also shown in the plot |
-| Opus 5.5; Fable 5.1 | Adaptive, medium, evaluator's default fallback |
-| Haiku 4.5; Kimi K2.5 | Reasoning enabled |
-| DeepSeek V4 Flash 0731; Kimi K3 | Max |
-| Llama 4 Maverick; Llama 4 Scout | Non-reasoning |
+Every row specifies the evaluated effort. Most current scores use medium;
+Grok 4.6 uses xhigh. Some Claude results include the evaluator's default
+fallback configuration. These are evaluator settings, not settings the helper
+applies. Model-specific sources and qualifications are retained in the CSV.
 
-These are evaluation settings, not settings the helper applies. Kimi K2.5 and
-both Llama index scores are **estimates pending independent evaluation** on
-this index. The evaluator marks DeepSeek 0731 and Kimi K2.5 deprecated, limiting
-ongoing performance updates; U-M still lists those IDs. Llama's score describes
-the model, not U-M's particular quantized deployment.
+Output speed comes from the evaluator's matching effort/model entry and uses
+its current full-request measure, including time to first token. It is an
+external endpoint measurement, not U-M throughput or total Codex task duration.
+[Performance methodology](https://artificialanalysis.ai/methodology).
 
-Output speed measures delivery after generation starts, excluding the initial
-wait. Artificial Analysis uses first-party APIs where available and otherwise
-provider medians. These are not U-M measurements and need not describe the
-host used for pricing. [Speed methodology](https://artificialanalysis.ai/methodology).
+A dash means no verified comparable score or speed. In particular, do not
+transfer a DeepSeek score from a dated variant to an unsuffixed gateway alias
+without resolving the mapping. Rows with no usable score remain in the price
+table and CSV but are excluded from the chart. The chart supplies no uncertainty
+intervals; small score gaps may not be meaningful.
+
+### Historical comparison
+
+The [24 September 2026 archive](model-comparison-2026-09-24.md) preserves the
+previous provider-price comparison and **v4.3.2** scores, including Llama rows
+that are absent from the latest gateway response. Its CSV and figure remain
+unchanged. Scores across the two index versions are not directly comparable.
 
 ### Update the comparison
 
-[Source data](data/model-benchmarks.csv) records exact IDs, evaluation settings,
-status, base prices, verification dates, and source links. Adjustments are
-separate fields: `price_adjustment_percent` and `adjustment_source`. The
-[plot script](build-model-benchmarks.py) multiplies base input/output prices by
-`1 + adjustment / 100`; it never fetches or imputes missing data.
+[Current source data](data/model-benchmarks-current.csv) records exact IDs,
+efforts, benchmark status, explicit Toolkit prices, dates, and source links.
+Blank values stay blank; the renderer does not fetch or impute data.
 
-Update the dated CSV and corresponding comparison values, then regenerate the
+After independently verifying and updating those records, regenerate the
 PNG and editable SVG from the repository root with Matplotlib installed:
 
 ```bash
 python3 docs/build-model-benchmarks.py
 ```
 
+For the historical chart, select its original data explicitly:
+
+```bash
+python3 docs/build-model-benchmarks.py --data docs/data/model-benchmarks.csv
+```
+
 ## Available models
 
-The live `umgpt-low` query returned **38 text models on 2026-09-24**: 9 Claude,
-17 GPT, 2 o-series, 5 Gemini, 1 DeepSeek, 2 Kimi, and 2 Llama. All 19 GPT/o-series
-models also appear in `umgpt`. Six image/embedding IDs are filtered out.
-The comparison covers 13 models; omission does not imply unavailability or
-poor performance.
+The **2026-11-16** gateway snapshot contains **48 IDs**: **41 text models**
+pass the general-text filter, and **18 GPT text models** also pass `umgpt`.
+The text models comprise 12 Claude, 18 GPT, 5 Gemini, 3 DeepSeek, 2 Kimi, and
+1 Grok. Seven image/embedding IDs are filtered out of both text scopes.
+The current comparison covers 18 text IDs; omission does not imply
+unavailability or poor performance.
+
+Compared with the September snapshot, eight IDs were added. Both Llama IDs,
+`o1`, and `o3` are absent from the latest response; this observation does not
+establish permanent removal or remove o-series support from the helper.
 
 [Browse the complete dated catalog and scope classifications](umgpt-models-snapshot.md).
 For the current IDs available to your credential, run:

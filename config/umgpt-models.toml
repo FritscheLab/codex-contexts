@@ -16,7 +16,7 @@ umgpt_low = "gpt-6-luna"
 
 # The default stays first. List favorites below in your preferred order.
 # Remaining models follow by family/version. Keep each array on one line.
-# Example: umgpt_order = ["gpt-6-sol", "gpt-6-astra", "o3"]
+# Example: umgpt_order = ["gpt-6.1-sol", "gpt-6-sol", "gpt-6-astra"]
 # Example: umgpt_low_order = ["claude-sonnet-5", "gemini-3.8-flash", "claude-haiku-4-5"]
 umgpt_order = []
 umgpt_low_order = []
