@@ -129,8 +129,6 @@ location; generated project files point to it.
 ## 5. Configure a project
 
 Return to [Start here](README.md#start-here) for the short workflow.
-[The VS Code screenshot walkthrough](docs/projects-vscode.md#vs-code-walkthrough)
-shows setup, review, launch, and the benefit of separate labeled windows.
 [Project setup](docs/projects-vscode.md) covers existing `.envrc` files,
 switching identities, and VS Code. On macOS,
 [Finder integration](docs/macos-open-with.md#install-the-finder-integration)

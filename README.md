@@ -37,7 +37,7 @@ Choose where to work:
 | Where? | Launch |
 |---|---|
 | Terminal | `codex-home run work` |
-| VS Code | `codex-home vscode work "/path/to/project"` · [Screenshot walkthrough](docs/projects-vscode.md#vs-code-walkthrough) |
+| VS Code | `codex-home vscode work "/path/to/project"` |
 | Finder on macOS | [Install the optional right-click action](docs/macos-open-with.md#install-the-finder-integration) |
 
 Ordinary **Open With → VS Code** bypasses this selection and may use `~/.codex`.

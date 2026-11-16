@@ -316,16 +316,28 @@ reject 'may not override the provider' validate_project_umgpt_model scoped "$pro
 # edit to either file invalidates the receipt and must leave direnv blocked.
 approval_project="$SECURITY_TEST_ROOT/approval-project"
 mkdir -p "$approval_project"
+approval_project="$(cd "$approval_project" && pwd -P)"
+approval_context() {
+  env -u CODEX_IDENTITY -u CODEX_HOME direnv exec "$approval_project" \
+    sh -c 'printf "%s\n" "${CODEX_IDENTITY:-}" "${CODEX_HOME:-}"'
+}
 "$SECURITY_TEST_TOOL" project subscription "$approval_project" >/dev/null
 receipt="$("$SECURITY_TEST_TOOL" project-fingerprint "$approval_project")"
 cp "$approval_project/.envrc" "$SECURITY_TEST_ROOT/approval-envrc"
 "$SECURITY_TEST_TOOL" project-approve "$approval_project" "$receipt" >/dev/null 2>&1
+approved_context="$(approval_context 2>"$SECURITY_TEST_ROOT/error")" || {
+  cat "$SECURITY_TEST_ROOT/error" >&2
+  fail 'approved context did not load'
+}
+[[ "$approved_context" == $'subscription\n'"$CODEX_HOMES_ROOT/subscription" ]] ||
+  fail 'approved context loaded the wrong identity or home'
 direnv deny "$approval_project" >/dev/null 2>&1
 printf '\n# changed after review\n' >>"$approval_project/.envrc"
 reject '' "$SECURITY_TEST_TOOL" project-approve "$approval_project" "$receipt"
-if direnv exec "$approval_project" true >/dev/null 2>&1; then
-  fail 'changed context retained approval'
-fi
+# direnv may run the command after denial without loading the context. Check
+# the environment, since a successful command alone does not imply approval.
+blocked_context="$(approval_context 2>/dev/null)" || true
+[[ -z "$blocked_context" ]] || fail 'changed context retained approval'
 cp "$SECURITY_TEST_ROOT/approval-envrc" "$approval_project/.envrc"
 approval_workspace="$approval_project/.vscode/approval-project.code-workspace"
 cp "$approval_workspace" "$SECURITY_TEST_ROOT/approval-workspace"
@@ -346,8 +358,7 @@ EOF
 chmod +x "$SECURITY_TEST_ROOT/approval-bin/direnv"
 reject 'approval revoked' env PATH="$SECURITY_TEST_ROOT/approval-bin:$PATH" \
   "$SECURITY_TEST_TOOL" project-approve "$approval_project" "$receipt"
-if direnv exec "$approval_project" true >/dev/null 2>&1; then
-  fail 'context changed during approval retained a usable approval'
-fi
+blocked_context="$(approval_context 2>/dev/null)" || true
+[[ -z "$blocked_context" ]] || fail 'context changed during approval retained a usable approval'
 
 printf 'Security launch tests passed.\n'

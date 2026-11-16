@@ -2,101 +2,39 @@
 
 A project context selects an identity through `.envrc`; that identity's
 `CODEX_HOME` holds its account, provider settings, and sessions. Start with
-[Installation](../INSTALLATION.md). Run
+[Installation](../INSTALLATION.md) and an existing identity. Run
 `./bin/codex-home` examples from the clone; bare `codex-home` assumes it is on
 `PATH`.
 
 | Task | Go to |
 |---|---|
-| See the whole VS Code setup | [Screenshot walkthrough](#vs-code-walkthrough) |
 | Connect a new folder | [Generate project files](#generate-project-files) |
 | Keep existing environment or editor settings | [Existing `.envrc`](#existing-envrc) / [workspace](#existing-vs-code-workspace) |
 | Switch identities | [Change the context](#change-or-remove-a-folders-codex-context) |
 | Disconnect a folder | [Remove its context](remove-folder-context.md) |
 
-## VS Code walkthrough
+## Generate project files
 
-These screenshots use temporary, signed-out `work` and `personal` homes.
-Your normal homes default to `~/.codex-homes/NAME`. No real account or key is
-shown. Labels identify local configuration; verify
-the actual account inside Codex after signing in.
-
-### 1. Check VS Code and the Codex extension
-
-Install VS Code and [OpenAI's Codex extension](../INSTALLATION.md#1-install-prerequisites).
-The Codex sidebar is where you start a chat and check sign-in status.
-
-![VS Code with the Codex extension available and its signed-out sidebar.](images/vscode-01-setup.png)
-
-### 2. Create a home for each account
-
-Use recognizable names. Sign in with the intended account in each browser flow:
+Replace `work` and the quoted project path:
 
 ```bash
-codex-home create-subscription work
-codex-home login work
-codex-home create-subscription personal
-codex-home login personal
+./bin/codex-home project work "/path/to/project"
 ```
-
-![Terminal setup of separate work and personal identity homes.](images/vscode-02-identities.png)
-
-Each home keeps its own login, settings, and history. The demo stays signed out;
-complete sign-in yourself. For an API key, use [API setup](api-providers.md) or
-[U-M GPT setup](umgpt.md) instead.
-
-<a id="generate-project-files"></a>
-
-### 3. Review the project files
-
-Assign the folder to `work`, then inspect what was generated:
-
-```bash
-codex-home project work "/path/to/project"
-```
-
-![Generated envrc and VS Code workspace files showing the chosen work identity and local window labels.](images/vscode-03-review.png)
 
 | Generated file | Purpose |
 |---|---|
 | `.envrc` | Selects the identity, checks its home, adds the helper to PATH, and watches configuration/key changes. It does not export credentials. |
 | `.vscode/<folder-name>.code-workspace` | Opens the folder with a `[CODEX: IDENTITY]` title and status-bar color. |
 
-`.envrc` is executable shell code. For a read-only review, use
-`codex-home project-review "/path/to/project"` and close the review window when done.
-Keep these files local; see [Git exclusions](#keep-project-files-local).
-
-### 4. Approve and launch through the helper
-
-Approve the file you reviewed, then open the identity's editor instance:
+Read both files; `.envrc` is executable shell code. For a read-only review in
+VS Code, run `./bin/codex-home project-review "/path/to/project"`.
+Then approve the intended file:
 
 ```bash
 direnv allow "/path/to/project"
-codex-home vscode work "/path/to/project"
 ```
 
-![Approval and helper launch output showing the work identity and its dedicated VS Code user-data directory.](images/vscode-04-launch.png)
-
-The helper checks the project's identity and home before launching. Start a new
-Codex chat, then check the account/API status and permissions in the extension.
-
-### 5. Keep the windows easy to distinguish
-
-For another project, repeat steps 3–4 with `personal`. Each identity gets a
-separate editor-data directory. Window titles and `codex-home current` help
-spot the selected context:
-
-| Work | Personal |
-|---|---|
-| ![Work window with its identity label and current home.](images/vscode-05-work.png) | ![Personal window with its identity label and different current home.](images/vscode-05-personal.png) |
-
-Open either image at full size to read the paths. `current` checks the terminal
-context; the extension's account menu remains the account check. Ordinary
-**Open With → VS Code** can bypass this setup.
-
-To switch a configured folder, [change its context](#change-or-remove-a-folders-codex-context),
-review and approve again, and launch a fresh editor session. To choose command
-permissions, use the [sandbox decision table](security.md#optional-native-sandbox).
+Keep these machine-specific files local; see [Git exclusions](#keep-project-files-local).
 
 ## Run from the terminal
 
@@ -130,8 +68,8 @@ codex-home run -- "Explain this project"
 ./bin/codex-home vscode-project "/path/to/project"
 ```
 
-This shortcut reads the configured identity. The walkthrough's explicit
-`vscode work` form also checks that the project selects `work`.
+Use `./bin/codex-home vscode work "/path/to/project"` to also require that the
+project selects `work`.
 
 The helper evaluates the approved direnv context once, checks the identity and
 home, and launches VS Code with filtered environment variables. New API
