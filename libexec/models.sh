@@ -623,8 +623,7 @@ probe_models() {
   data_helper url "$base_url" || return
   [[ -t 0 ]] || die "probe-models requires an interactive terminal"
 
-  IFS= read -r -s -p "API key for $base_url: " secret
-  printf '\n' >&2
+  secret="$(prompt_secret "API key for $base_url: ")" || return
   [[ -n "$secret" ]] || die "key may not be empty"
   validate_single_line "API key" "$secret"
   request_models "$base_url" "$secret"

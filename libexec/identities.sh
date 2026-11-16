@@ -447,6 +447,24 @@ api_key_env_for() {
   data_helper key-name "$home"
 }
 
+prompt_secret() (
+  local prompt="$1" secret terminal_settings restore_terminal
+  terminal_settings="$(stty -g)" || return
+  # Bash 3.2 can unwind local variables before running EXIT after a signal.
+  printf -v restore_terminal 'stty %q || exit 1' "$terminal_settings"
+  trap "$restore_terminal" EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  # Bash 3.2 can print read -s -p's prompt before disabling terminal echo.
+  stty -echo || return
+  printf '%s' "$prompt" >&2 || return
+  IFS= read -r secret || return
+  printf '\n' >&2 || return
+  printf '%s' "$secret"
+)
+
 set_key() (
   [[ $# -eq 1 ]] || die "usage: codex-home set-key NAME"
   local name="$1"
@@ -461,8 +479,7 @@ set_key() (
     die "refusing to replace a symlinked or nonregular credential file: $destination"
   [[ -t 0 ]] || die "set-key requires an interactive terminal so the key is not exposed"
 
-  IFS= read -r -s -p "Enter $key_env for $name: " secret
-  printf '\n' >&2
+  secret="$(prompt_secret "Enter $key_env for $name: ")" || return
   [[ -n "$secret" ]] || die "key may not be empty"
   validate_single_line "API key" "$secret"
 

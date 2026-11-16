@@ -54,6 +54,8 @@ symlinked ownership evidence are left untouched.
 registering real applications.
 `bash tests/packaging.sh` checks the bundled layout;
 `bash tests/api-auth.sh` checks key handling and conservative migration.
+`bash tests/secret-prompts.sh` checks hidden input and terminal restoration after
+successful entry, EOF, and Ctrl-C.
 `bash tests/cli-launch.sh` checks missing CLI diagnostics, executable failures,
 and argument, identity, and exit-status preservation with a closed test PATH.
 
