@@ -760,6 +760,12 @@ def main() -> None:
         publish_model_files(*args)
     elif action == "config-file":
         read_config(args[0])
+    elif action == "claim-identity-home":
+        # Some uutils mkdir releases report success after a concurrent EEXIST.
+        try:
+            os.mkdir(args[0], mode=0o700)
+        except FileExistsError:
+            fail(f"refusing to overwrite existing path: {args[0]}")
     elif action == "create-config":
         os.link(args[0], args[1])  # Publish a staged config without replacing a concurrent one.
     elif action == "validate-key-name":

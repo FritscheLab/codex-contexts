@@ -67,8 +67,9 @@ grep -Fq 'Model          : top-level-model' "$CONFIG_TEST_ROOT/output" ||
   [[ ! -e relative-homes ]] || fail 'relative identity root left files'
 )
 
-# Hold both creates at the first attempt to claim the leaf directory. Exactly
-# one may report success, and its configuration must be the one that survives.
+# Release both creates after they pass the initial existence check. Emulate the
+# affected uutils mkdir for the leaf path to catch reliance on its exit status.
+# Exactly one create must succeed and publish its own settings.
 python3 -I - "$CONFIG_TEST_TOOL" "$CONFIG_TEST_ROOT" <<'PY'
 import os
 from pathlib import Path
@@ -87,7 +88,12 @@ from pathlib import Path
 import sys
 import time
 
-if sys.argv[-1] == os.environ['CLAIM_TEST_HOME']:
+home = Path(os.environ['CLAIM_TEST_HOME'])
+target = Path(sys.argv[-1])
+if target == home:
+    home.mkdir(exist_ok=True)
+    raise SystemExit(0)
+if target == home.parent:
     barrier = Path(os.environ['CLAIM_TEST_BARRIER'])
     (barrier / str(os.getpid())).touch()
     deadline = time.monotonic() + 5

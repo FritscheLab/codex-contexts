@@ -610,7 +610,7 @@ probe_models() {
   data_helper url "$base_url" || return
   [[ -t 0 ]] || die "probe-models requires an interactive terminal"
 
-  secret="$(prompt_secret "API key for $base_url: ")" || return
+  prompt_secret "API key for $base_url: " secret || return
   [[ -n "$secret" ]] || die "key may not be empty"
   validate_single_line "API key" "$secret"
   request_models "$base_url" "$secret"

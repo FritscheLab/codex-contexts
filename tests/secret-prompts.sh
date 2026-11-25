@@ -9,6 +9,7 @@ export SECRET_TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-secret-prompts.XXXXX
 trap 'rm -rf -- "$SECRET_TEST_ROOT"' EXIT
 export HOME="$SECRET_TEST_ROOT/home"
 export CODEX_HOMES_ROOT="$SECRET_TEST_ROOT/homes"
+export SECRET_TEST_STTY="$(command -v stty)"
 mkdir -p "$HOME" "$SECRET_TEST_ROOT/bin"
 export PATH="$SECRET_TEST_ROOT/bin:$PATH"
 fail() { printf 'Secret prompt test failure: %s\n' "$*" >&2; exit 1; }
@@ -19,6 +20,21 @@ cat >/dev/null
 printf '%s\n' '{"data":[{"id":"synthetic-model"}]}'
 EOF
 chmod +x "$SECRET_TEST_ROOT/bin/curl"
+
+# A slow restore exposes a CLI that exits while its prompt is still cleaning up.
+cat >"$SECRET_TEST_ROOT/bin/stty" <<'EOF'
+#!/usr/bin/env bash
+if [[ -n "${secret:-}" && "$secret" != inherited-environment-value ]]; then
+  printf 'Terminal command received the prompted key in its environment.\n' >&2
+  exit 122
+fi
+if [[ "${SECRET_TEST_OUTCOME:-}" == interrupt && "$1" != -* ]]; then
+  sleep 0.2
+fi
+exec "$SECRET_TEST_STTY" "$@"
+EOF
+chmod +x "$SECRET_TEST_ROOT/bin/stty"
+
 "$SECRET_TEST_TOOL" create-api prompt-test https://provider.example.test/v1 \
   synthetic-model PROMPT_TEST_KEY >/dev/null
 
@@ -32,7 +48,10 @@ original_settings="$(stty -g)" || exit 120
 trap ':' INT
 "$@"
 command_status=$?
-[[ "$(stty -g)" == "$original_settings" ]] || exit 121
+if [[ "$(stty -g)" != "$original_settings" ]]; then
+  printf '\nTerminal settings changed after the CLI exited.\n' >&2
+  exit 121
+fi
 printf '\nPROMPT_STATUS=%s\n' "$command_status"
 EOF
 
@@ -60,6 +79,8 @@ for action in set-key probe-models; do
       set timeout 10
       spawn -noecho env -i HOME=$env(HOME) \
         CODEX_HOMES_ROOT=$env(CODEX_HOMES_ROOT) PATH=$env(PATH) \
+        SECRET_TEST_STTY=$env(SECRET_TEST_STTY) SECRET_TEST_OUTCOME=$env(SECRET_TEST_OUTCOME) \
+        secret=inherited-environment-value \
         bash $env(SECRET_TEST_ROOT)/terminal-wrapper \
         $env(SECRET_TEST_TOOL) $env(SECRET_TEST_ACTION) $env(SECRET_TEST_ARGUMENT)
       expect {

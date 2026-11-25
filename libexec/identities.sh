@@ -201,10 +201,7 @@ claim_identity_home() {
   local home="$1" cleanup
   umask 077
   mkdir -p -- "$(dirname "$home")" || return
-  if ! mkdir -- "$home"; then
-    [[ ! -e "$home" && ! -L "$home" ]] || die "refusing to overwrite existing path: $home"
-    die "could not create identity directory: $home"
-  fi
+  data_helper claim-identity-home "$home" || return
   printf -v cleanup 'discard_unfinished_identity %q' "$home"
   trap "$cleanup" EXIT
   trap 'exit 129' HUP
@@ -466,25 +463,37 @@ api_key_env_for() {
   data_helper key-name "$home"
 }
 
-prompt_secret() (
-  local prompt="$1" secret terminal_settings restore_terminal
+prompt_secret() {
+  local prompt="$1" result_var="$2" terminal_settings previous_traps restore_terminal status=0
+  local allexport=0
   terminal_settings="$(stty -g)" || return
-  # Bash 3.2 can unwind local variables before running EXIT after a signal.
-  printf -v restore_terminal 'stty %q || exit 1' "$terminal_settings"
-  trap "$restore_terminal" EXIT
-  trap 'exit 129' HUP
-  trap 'exit 130' INT
-  trap 'exit 143' TERM
+  previous_traps="$(trap -p HUP INT TERM)"
+  # The input must stay out of child environments, including stty's.
+  if [[ "$-" == *a* ]]; then
+    set +a
+    allexport=1
+  fi
+  export -n "$result_var"
+  # Restore in the foreground CLI shell before its caller can use the terminal.
+  printf -v restore_terminal 'trap "" HUP INT TERM; stty %q || exit 1' "$terminal_settings"
+  trap "$restore_terminal; exit 129" HUP
+  trap "$restore_terminal; exit 130" INT
+  trap "$restore_terminal; exit 143" TERM
 
   # Bash 3.2 can print read -s -p's prompt before disabling terminal echo.
-  stty -echo || return
-  printf '%s' "$prompt" >&2 || return
-  IFS= read -r secret || return
-  printf '\n' >&2 || return
-  printf '%s' "$secret"
-)
+  if stty -echo && printf '%s' "$prompt" >&2 && IFS= read -r "$result_var"; then
+    printf '\n' >&2 || status=$?
+  else
+    status=$?
+  fi
+  stty "$terminal_settings" || status=$?
+  trap - HUP INT TERM
+  eval "$previous_traps"
+  if (( allexport )); then set -a; fi
+  return "$status"
+}
 
-set_key() (
+set_key() {
   [[ $# -eq 1 ]] || die "usage: codex-home set-key NAME"
   local name="$1"
   local home key_env secret destination
@@ -498,14 +507,14 @@ set_key() (
     die "refusing to replace a symlinked or nonregular credential file: $destination"
   [[ -t 0 ]] || die "set-key requires an interactive terminal so the key is not exposed"
 
-  secret="$(prompt_secret "Enter $key_env for $name: ")" || return
+  prompt_secret "Enter $key_env for $name: " secret || return
   [[ -n "$secret" ]] || die "key may not be empty"
   validate_single_line "API key" "$secret"
 
   destination="$(printf '%s' "$secret" | data_helper store-key "$home" "$key_env")" || return
   unset secret
   printf 'Saved %s in %s with mode 600.\n' "$key_env" "$destination"
-)
+}
 
 migrate_api_auth() {
   [[ $# -eq 1 ]] || die "usage: codex-home migrate-api-auth NAME"
