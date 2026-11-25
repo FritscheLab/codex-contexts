@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If this software supports your work, please cite it using this metadata."
+type: software
+license: MIT
+title: "Codex Contexts"
+abstract: >-
+  A command-line utility for keeping Codex authentication identities and API
+  provider configurations separate and selecting them per project.
+authors:
+  - family-names: "Fritsche"
+    given-names: "Lars"
+repository-code: "https://github.com/FritscheLab/codex-contexts"
+url: "https://github.com/FritscheLab/codex-contexts"
+keywords:
+  - "Codex"
+  - "credential separation"
+  - "developer tooling"
+  - "direnv"

@@ -1,0 +1,62 @@
+# U-M GPT model snapshot
+
+- **Generated:** 2026-11-16
+- **Source:** `https://api.toolkit.umgpt.umich.edu/v1/models`
+- **Advertised to identity:** `umgpt`
+- **Advertised IDs:** 48
+- **Matches `umgpt`:** 18
+- **Matches `umgpt-low`:** 41
+- **Excluded from both text scopes:** 7
+
+> The IDs reflect the key used for this listing. "Matches" means the ID passes the local scope filter. Run `codex-home models NAME` for live results. Verify model compatibility and data approval separately.
+
+| Model ID | `umgpt` rule | `umgpt-low` rule | Local classification |
+|---|---|---|---|
+| `claude-fable-5-1` | Does not match | Matches | Other ID without image/embedding |
+| `claude-fable-5-2` | Does not match | Matches | Other ID without image/embedding |
+| `claude-haiku-4-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-haiku-5-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-opus-4-6` | Does not match | Matches | Other ID without image/embedding |
+| `claude-opus-4-7` | Does not match | Matches | Other ID without image/embedding |
+| `claude-opus-4-8` | Does not match | Matches | Other ID without image/embedding |
+| `claude-opus-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-opus-5-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-sonnet-4-6` | Does not match | Matches | Other ID without image/embedding |
+| `claude-sonnet-5` | Does not match | Matches | Other ID without image/embedding |
+| `claude-sonnet-5-5` | Does not match | Matches | Other ID without image/embedding |
+| `deepseek-v4-flash-0731` | Does not match | Matches | Other ID without image/embedding |
+| `deepseek-v4-pro` | Does not match | Matches | Other ID without image/embedding |
+| `deepseek-v4.1-flash` | Does not match | Matches | Other ID without image/embedding |
+| `gemini-3-flash-preview` | Does not match | Matches | Other ID without image/embedding |
+| `gemini-3.1-flash-image-preview` | Does not match | Does not match | ID contains image or embedding |
+| `gemini-3.5-flash` | Does not match | Matches | Other ID without image/embedding |
+| `gemini-3.6-flash` | Does not match | Matches | Other ID without image/embedding |
+| `gemini-3.7-flash` | Does not match | Matches | Other ID without image/embedding |
+| `gemini-3.8-flash` | Does not match | Matches | Other ID without image/embedding |
+| `gpt-4.1` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-4.1-mini` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-4.1-nano` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-4o` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-4o-mini` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5-mini` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.1` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.2` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.4` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.5` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.6-luna` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.6-sol` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-5.6-terra` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-6-astra` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-6-luna` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-6-sol` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-6.1-sol` | Matches | Matches | GPT/o-series ID without image/embedding |
+| `gpt-image-1.5` | Does not match | Does not match | ID contains image or embedding |
+| `gpt-image-2` | Does not match | Does not match | ID contains image or embedding |
+| `gpt-image-2.5-flare` | Does not match | Does not match | ID contains image or embedding |
+| `gpt-image-2.5-sunburst` | Does not match | Does not match | ID contains image or embedding |
+| `grok-4.6` | Does not match | Matches | Other ID without image/embedding |
+| `kimi-k2.5` | Does not match | Matches | Other ID without image/embedding |
+| `kimi-k3` | Does not match | Matches | Other ID without image/embedding |
+| `text-embedding-3-large` | Does not match | Does not match | ID contains image or embedding |
+| `text-embedding-3-small` | Does not match | Does not match | ID contains image or embedding |

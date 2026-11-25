@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040" role="img" aria-labelledby="title description">
+  <title id="title">Choose the account. Set command permissions.</title>
+  <desc id="description">An approved project envrc selects the work account home. That home supplies settings and credentials to a new Codex CLI or VS Code session, which connects to the chosen model provider. Verify the account in the application. Generated commands use optional native sandbox permissions: workspace-write permits project and temporary-file writes, while read-only restricts file writes. Approval requests follow the effective Codex policy. The application and model-provider connection remain outside the command sandbox.</desc>
+  <metadata id="icon-license">Unmodified icon geometry: Lucide folder, folder-cog, square-terminal, cloud, user-round-check. Sources: https://github.com/lucide-icons/lucide/tree/main/icons
+ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+---
+
+The following Lucide icons are derived from the Feather project:
+
+airplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out
+
+The MIT License (MIT) (for the icons listed above)
+
+Copyright (c) 2013-present Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</metadata>
+  <defs>
+    <symbol id="icon-folder" viewBox="0 0 24 24">
+  <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+</symbol><symbol id="icon-folder-cog" viewBox="0 0 24 24">
+  <path d="M10.3 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.98a2 2 0 0 1 1.69.9l.66 1.2A2 2 0 0 0 12 6h8a2 2 0 0 1 2 2v3.3" />
+  <path d="m14.305 19.53.923-.382" />
+  <path d="m15.228 16.852-.923-.383" />
+  <path d="m16.852 15.228-.383-.923" />
+  <path d="m16.852 20.772-.383.924" />
+  <path d="m19.148 15.228.383-.923" />
+  <path d="m19.53 21.696-.382-.924" />
+  <path d="m20.772 16.852.924-.383" />
+  <path d="m20.772 19.148.924.383" />
+  <circle cx="18" cy="18" r="3" />
+</symbol><symbol id="icon-square-terminal" viewBox="0 0 24 24">
+  <path d="m7 11 2-2-2-2" />
+  <path d="M11 13h4" />
+  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+</symbol><symbol id="icon-cloud" viewBox="0 0 24 24">
+  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+</symbol><symbol id="icon-user-round-check" viewBox="0 0 24 24">
+  <path d="M2 21a8 8 0 0 1 13.292-6" />
+  <circle cx="10" cy="8" r="5" />
+  <path d="m16 19 2 2 4-4" />
+</symbol>
+    <marker id="flow-tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1 9 5 1 9" fill="none" stroke="#63878C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #172B46; }
+    .title { font-size: 48px; font-weight: 700; }
+    .heading { font-size: 32px; font-weight: 700; }
+    .body { font-size: 26px; }
+    .mono { font-family: Menlo, Consolas, monospace; font-size: 26px; }
+    .icon { fill: none; stroke: #147D78; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .flow { fill: none; stroke: #63878C; stroke-width: 3; stroke-linecap: round; marker-end: url(#flow-tip); }
+  </style>
+  <rect width="1600" height="1040" fill="#FFFFFF"/>
+  <text x="56" y="84" class="title">Choose the account. Set command permissions.</text>
+  <text x="56" y="135" class="body">One named home supplies settings and credentials to a new CLI or VS Code session.</text>
+
+  <g id="project">
+    <rect x="48" y="200" width="352" height="390" rx="24" fill="#EDF5F5"/>
+    <rect x="80" y="232" width="126" height="126" rx="24" fill="#D5ECE8"/>
+    <use href="#icon-folder" x="95" y="247" width="96" height="96" class="icon"/>
+    <text x="80" y="415" class="heading">Project</text>
+    <text x="80" y="466" class="body">Approved .envrc</text>
+    <text x="80" y="510" class="body">Selects an identity:</text>
+    <text x="80" y="550" class="mono">work</text>
+  </g>
+  <path d="M407 395 H423" class="flow"/>
+  <g id="account-home">
+    <rect x="432" y="200" width="352" height="390" rx="24" fill="#EDF5F5"/>
+    <rect x="464" y="232" width="126" height="126" rx="24" fill="#D5ECE8"/>
+    <use href="#icon-folder-cog" x="479" y="247" width="96" height="96" class="icon"/>
+    <text x="464" y="415" class="heading">Account home</text>
+    <text x="464" y="466" class="mono">~/.codex-homes/</text>
+    <text x="464" y="506" class="mono">work/</text>
+    <text x="464" y="550" class="body">Settings and credentials</text>
+  </g>
+  <path d="M791 395 H807" class="flow"/>
+  <g id="session">
+    <rect x="816" y="200" width="352" height="390" rx="24" fill="#EDF5F5"/>
+    <rect x="848" y="232" width="126" height="126" rx="24" fill="#D5ECE8"/>
+    <use href="#icon-square-terminal" x="863" y="247" width="96" height="96" class="icon"/>
+    <text x="848" y="415" class="heading">CLI or VS Code</text>
+    <text x="848" y="466" class="mono">[CODEX: WORK]</text>
+    <text x="848" y="510" class="body">Verify the account</text>
+    <text x="848" y="550" class="body">in the app.</text>
+  </g>
+  <path d="M1175 395 H1191" class="flow"/>
+  <g id="model-provider">
+    <rect x="1200" y="200" width="352" height="390" rx="24" fill="#EDF5F5"/>
+    <rect x="1232" y="232" width="126" height="126" rx="24" fill="#D5ECE8"/>
+    <use href="#icon-cloud" x="1247" y="247" width="96" height="96" class="icon"/>
+    <text x="1232" y="415" class="heading">Model provider</text>
+    <text x="1232" y="466" class="body">Chosen endpoint</text>
+    <text x="1232" y="510" class="body">Receives requests</text>
+  </g>
+
+  <path d="M992 601 V668" class="flow"/>
+  <text x="1032" y="641" class="body">Generated commands</text>
+  <g id="native-command-sandbox">
+    <rect x="48" y="680" width="1008" height="244" rx="24" fill="#EDF5F5" stroke="#147D78" stroke-width="2" stroke-dasharray="8 8"/>
+    <text x="80" y="736" class="heading">Optional native command sandbox</text>
+    <text x="80" y="793" class="mono">workspace-write</text>
+    <text x="80" y="837" class="body">Project and temporary-file</text>
+    <text x="80" y="877" class="body">writes permitted</text>
+    <text x="592" y="793" class="mono">read-only</text>
+    <text x="592" y="837" class="body">Restricts file writes</text>
+  </g>
+  <path d="M1068 802 H1108" class="flow"/>
+  <g id="approvals">
+    <rect x="1120" y="680" width="432" height="244" rx="24" fill="#F1F6F8"/>
+    <use href="#icon-user-round-check" x="1152" y="710" width="54" height="54" class="icon"/>
+    <text x="1224" y="748" class="heading">Approvals</text>
+    <text x="1152" y="815" class="body">Requests follow your</text>
+    <text x="1152" y="859" class="body">effective Codex policy.</text>
+  </g>
+  <text x="56" y="994" class="body">Account routing and command permissions are separate controls. Check the effective account and permissions.</text>
+</svg>

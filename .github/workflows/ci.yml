@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      CODEX_CONTRACT_VERSION: "0.156.1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ubuntu dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap expect jq
+          # Ubuntu's direnv 2.32.1 expands shell metacharacters in project paths.
+          # Pin a release containing the upstream path-escaping fix (2.32.2+).
+          curl --fail --location --silent --show-error \
+            https://github.com/direnv/direnv/releases/download/v2.37.1/direnv.linux-amd64 \
+            --output "$RUNNER_TEMP/direnv"
+          printf '%s  %s\n' \
+            1f1b93dd6f38523fde26dfac96151ef9d31a374e3005cd3345fb93555ae0c9b5 \
+            "$RUNNER_TEMP/direnv" | sha256sum --check
+          sudo install -m 0755 "$RUNNER_TEMP/direnv" /usr/local/bin/direnv
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install direnv jq
+
+      - name: Use stock macOS Bash 3.2
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p "$RUNNER_TEMP/bash-compat"
+          ln -s /bin/bash "$RUNNER_TEMP/bash-compat/bash"
+          echo "$RUNNER_TEMP/bash-compat" >> "$GITHUB_PATH"
+
+      - name: Check Bash syntax
+        shell: bash
+        run: |
+          for script in bin/* libexec/*.sh tests/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Run tests
+        run: ./tests/test.sh
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned Codex
+        run: npm install --global "@openai/codex@$CODEX_CONTRACT_VERSION"
+
+      - name: Check native Codex config, auth, tools, and sandbox
+        run: python3 -I tests/native-codex.py
+
+  documentation:
+    name: Documentation checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install documentation checkers
+        run: |
+          npm install --global markdown-link-check@3.13.7
+
+      - name: Check Markdown links
+        run: |
+          find . -type f -name '*.md' -not -path './.git/*' -print0 \
+            | xargs -0 -n 1 markdown-link-check \
+                --config .github/markdown-link-check.json

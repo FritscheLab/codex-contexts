@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="695" viewBox="0 0 1200 695" role="img" aria-labelledby="title description">
+  <title id="title">Native Codex setup and what codex-home adds</title>
+  <desc id="description">Give each account a private home for its login, settings, and history. Set CODEX_HOME directly or use direnv with an approved .envrc when opening a project in the terminal or VS Code. codex-home adds named identities with launch checks, generated project files and labeled workspaces, and optional Finder integration and U-M model picker tools.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M1 1 11 6 1 11" fill="none" stroke="#63878C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #172B46; }
+    .heading { font-size: 34px; font-weight: 700; }
+    .label { font-size: 28px; font-weight: 700; }
+    .body { font-size: 26px; }
+    .mono { font-family: Menlo, Consolas, monospace; font-size: 27px; }
+    .panel { fill: #EDF5F5; }
+    .icon-background { fill: #D5ECE8; }
+    .icon { fill: none; stroke: #147D78; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+    .flow { fill: none; stroke: #63878C; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <rect width="1200" height="695" fill="#FFFFFF"/>
+  <text x="36" y="51" class="heading">Manual setup with native Codex</text>
+
+  <g transform="translate(0 48)">
+    <rect x="36" y="24" width="548" height="178" rx="22" class="panel"/>
+    <rect x="60" y="54" width="72" height="72" rx="16" class="icon-background"/>
+    <g transform="translate(76 69)" class="icon">
+      <rect x="3" y="18" width="34" height="23" rx="5"/>
+      <path d="M10 18V12a10 10 0 0 1 20 0v6M20 28v5"/>
+    </g>
+    <text x="152" y="83" class="heading">Account folder</text>
+    <text x="152" y="126" class="mono">~/.codex-work/</text>
+    <text x="152" y="165" class="body">Separate login, settings, and history</text>
+
+    <rect x="616" y="24" width="548" height="178" rx="22" class="panel"/>
+    <rect x="640" y="54" width="72" height="72" rx="16" class="icon-background"/>
+    <g transform="translate(654 69)" class="icon">
+      <path d="M3 33V8a4 4 0 0 1 4-4h10l5 6h17a4 4 0 0 1 4 4v19a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+    </g>
+    <text x="732" y="83" class="heading">Project folder</text>
+    <text x="732" y="126" class="mono">~/Projects/lab-notes/</text>
+    <text x="732" y="165" class="body">Optional direnv loads .envrc</text>
+
+    <path d="M310 210v26h580v-26" class="flow"/>
+    <path d="M600 236v31" class="flow" marker-end="url(#arrow)"/>
+
+    <rect x="224" y="278" width="752" height="124" rx="22" class="panel"/>
+    <text x="600" y="328" text-anchor="middle" class="heading">Open in Terminal or VS Code</text>
+    <text x="600" y="370" text-anchor="middle" class="body">Set <tspan class="mono">CODEX_HOME</tspan> to the account folder's path.</text>
+  </g>
+
+  <rect x="36" y="484" width="1128" height="187" rx="22" fill="#F1F6F8"/>
+  <rect x="60" y="506" width="6" height="35" rx="3" fill="#147D78"/>
+  <text x="80" y="534" class="heading">What codex-home adds</text>
+  <path d="M410 554v91M777 554v91" stroke="#C9DBDE" stroke-width="2"/>
+
+  <text x="60" y="580" class="label">Named launches</text>
+  <text x="60" y="615" class="body">Choose an identity by name.</text>
+  <text x="60" y="646" class="body">Check the launch context.</text>
+
+  <text x="435" y="580" class="label">Generated project files</text>
+  <text x="435" y="615" class="body">Create .envrc and a labeled</text>
+  <text x="435" y="646" class="body">VS Code workspace.</text>
+
+  <text x="802" y="580" class="label">Optional integrations</text>
+  <text x="802" y="615" class="body">Finder right-click launch</text>
+  <text x="802" y="646" class="body">U-M model picker refresh</text>
+</svg>

@@ -1,0 +1,9 @@
+# Model defaults and preferred order for the two U-M GPT identities.
+# See MODELS.md for settings and model selection.
+
+umgpt = "gpt-6-luna"
+umgpt_low = "gpt-6-luna"
+
+# Keep each order array on one line, in preferred order.
+umgpt_order = []
+umgpt_low_order = []

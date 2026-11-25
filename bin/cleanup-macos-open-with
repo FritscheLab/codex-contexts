@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Preview generated applications; delete only when explicitly given --apply.
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+CODEX_CONTEXTS_LIB="$(cd "$SCRIPT_DIR/../libexec" && pwd -P)"
+source "$CODEX_CONTEXTS_LIB/macos.sh"
+CODEX_HOMES_ROOT="${CODEX_HOMES_ROOT:-$HOME/.codex-homes}"
+die() { printf 'cleanup-macos-open-with: %s\n' "$*" >&2; exit 1; }
+[[ "$(uname -s)" == Darwin ]] || die "this cleanup is only for macOS"
+APPLY=0
+BACKUPS_ONLY=0
+for argument in "$@"; do
+  case "$argument" in
+    --apply) APPLY=1 ;;
+    --backups-only) BACKUPS_ONLY=1 ;;
+    --help|-h)
+      printf 'usage: cleanup-macos-open-with [--backups-only] [--apply]\nPreview only by default. --apply unregisters and permanently deletes the listed generated bundles.\n'
+      exit 0 ;;
+    *) die "usage: cleanup-macos-open-with [--backups-only] [--apply]" ;;
+  esac
+done
+APP_DIR="${CODEX_MACOS_APP_DIR:-$HOME/Applications}"
+SERVICES_DIR="${CODEX_MACOS_SERVICES_DIR:-$HOME/Library/Services}"
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+
+remove_bundle() (
+  local bundle="$1" kind="$2" lock="$3" user_data="${4:-}" owned_id=""
+  [[ -d "$bundle" && ! -L "$bundle" ]] || return 0
+  if [[ "$APPLY" == 1 ]]; then
+    # Each action owns its descriptors in a subshell. Preview never opens locks.
+    macos_acquire_locks "$lock" || die "could not lock generated bundle: $bundle"
+    if ! owned_id="$(macos_owned_bundle "$kind" "$bundle")"; then
+      printf 'Kept bundle whose ownership changed while waiting: %s\n' "$bundle" >&2
+      return 0
+    fi
+  fi
+  if [[ -n "$user_data" ]] && macos_vscode_is_running "$user_data"; then
+    printf 'Kept running editor: %s; quit this identity and rerun cleanup.\n' "$bundle" >&2
+    return 0
+  fi
+  if [[ "$APPLY" == 0 ]]; then
+    printf 'Would remove generated bundle: %s\n' "$bundle"
+    return 0
+  fi
+  if [[ "$kind" != workflow && "${CODEX_MACOS_SKIP_REGISTER:-0}" != 1 && -x "$LSREGISTER" ]]; then
+    "$LSREGISTER" -u "$bundle" || die "could not unregister $bundle; it has been kept"
+  fi
+  [[ "$(macos_bundle_identity "$bundle")" == "$owned_id" ]] || die "bundle changed before removal: $bundle"
+  rm -rf -- "$bundle"
+  printf 'Removed generated bundle: %s\n' "$bundle"
+)
+
+remove_app_backup() {
+  local bundle="$1"
+  [[ -d "$bundle" && ! -L "$bundle" ]] || return 0
+  macos_owned_bundle project "$bundle" >/dev/null || return 0
+  remove_bundle "$bundle" project "$(macos_install_lock_path "$APP_DIR")"
+}
+
+if [[ ! -L "$APP_DIR/.codex-project-backups" ]]; then
+  for bundle in "$APP_DIR/.codex-project-backups"/Codex\ Project.*.app.backup; do
+    remove_app_backup "$bundle"
+  done
+fi
+for bundle in "$APP_DIR"/Codex\ Project.backup.*.app; do
+  remove_app_backup "$bundle"
+done
+if [[ ! -L "$SERVICES_DIR/.codex-project-backups" ]]; then
+  for bundle in "$SERVICES_DIR/.codex-project-backups"/Open\ in\ Codex\ Project.*.workflow.backup; do
+    [[ -d "$bundle" && ! -L "$bundle" ]] || continue
+    macos_owned_bundle workflow "$bundle" >/dev/null || continue
+    remove_bundle "$bundle" workflow "$(macos_install_lock_path "$SERVICES_DIR")"
+  done
+fi
+if [[ "$BACKUPS_ONLY" == 1 ]]; then
+  [[ "$APPLY" == 1 ]] || printf 'Preview only. Nothing changed. Add --apply to delete these generated bundles.\n'
+  exit 0
+fi
+
+for bundle in "$HOME/Applications"/VS\ Code\ -\ *.app; do
+  [[ -d "$bundle" && ! -L "$bundle" ]] || continue
+  macos_owned_bundle handler "$bundle" >/dev/null || continue
+  remove_bundle "$bundle" handler "$(macos_handler_lock_path "$bundle")"
+done
+
+# Named editor copies retain the vendor's folder associations. Remove stopped
+# copies so later discovery cannot restore those entries. Never touch user data.
+for identity_home in "$HOME/.codex" "$CODEX_HOMES_ROOT"/*; do
+  [[ -d "$identity_home" && ! -L "$identity_home" ]] || continue
+  for editor_dir in "$identity_home/vscode-editor" "$identity_home/vscode-dock"; do
+    [[ -d "$editor_dir" && ! -L "$editor_dir" ]] || continue
+    for bundle in "$editor_dir"/VS\ Code\ -\ *.app; do
+      [[ -d "$bundle" && ! -L "$bundle" ]] || continue
+      if [[ "$editor_dir" == */vscode-editor ]]; then
+        bundle_kind=named-editor
+        macos_owned_bundle "$bundle_kind" "$bundle" >/dev/null || continue
+      else
+        bundle_kind=legacy-editor
+        macos_owned_bundle "$bundle_kind" "$bundle" >/dev/null || continue
+      fi
+      remove_bundle "$bundle" "$bundle_kind" "$(macos_editor_lock_path "$editor_dir")" "$identity_home/vscode-user-data"
+    done
+  done
+done
+if [[ "$APPLY" == 1 ]]; then
+  printf 'Cleanup complete. Reopen the Open With menu.\n'
+else
+  printf 'Preview only. Nothing changed. Add --apply to delete these generated bundles.\n'
+fi

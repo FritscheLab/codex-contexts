@@ -1,0 +1,11 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^https?://"
+    },
+    {
+      "pattern": "^mailto:"
+    }
+  ],
+  "retryOn429": true
+}
